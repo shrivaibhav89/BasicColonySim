@@ -125,6 +125,7 @@ MonoBehaviour:
   foodCost: 5
   woodCost: 5
   stoneCost: 5
+  footprintSize: {x: 2, y: 2}
   foodPerSec: 0
   woodPerSec: 0
   stonePerSec: 0

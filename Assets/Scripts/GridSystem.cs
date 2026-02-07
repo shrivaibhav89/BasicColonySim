@@ -44,6 +44,36 @@ public class GridSystem : MonoBehaviour
         // Check if occupied
         return !occupiedTiles[gridPos.x, gridPos.y];
     }
+
+    public bool IsAreaValidPlacement(Vector2Int origin, Vector2Int size)
+    {
+        for (int x = 0; x < size.x; x++)
+        {
+            for (int y = 0; y < size.y; y++)
+            {
+                Vector2Int gridPos = new Vector2Int(origin.x + x, origin.y + y);
+                if (!IsValidPlacement(gridPos))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public bool IsWalkable(Vector2Int gridPos)
+    {
+        if (gridPos.x < 0 || gridPos.x >= gridWidth) return false;
+        if (gridPos.y < 0 || gridPos.y >= gridHeight) return false;
+
+        if (IsRoadAt(gridPos))
+        {
+            return true;
+        }
+
+        return !occupiedTiles[gridPos.x, gridPos.y];
+    }
     
     // Mark a tile as occupied
     public void SetOccupied(Vector2Int gridPos, bool occupied)
@@ -52,6 +82,17 @@ public class GridSystem : MonoBehaviour
             gridPos.y >= 0 && gridPos.y < gridHeight)
         {
             occupiedTiles[gridPos.x, gridPos.y] = occupied;
+        }
+    }
+
+    public void SetAreaOccupied(Vector2Int origin, Vector2Int size, bool occupied)
+    {
+        for (int x = 0; x < size.x; x++)
+        {
+            for (int y = 0; y < size.y; y++)
+            {
+                SetOccupied(new Vector2Int(origin.x + x, origin.y + y), occupied);
+            }
         }
     }
 

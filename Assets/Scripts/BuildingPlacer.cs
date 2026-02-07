@@ -110,10 +110,18 @@ public class BuildingPlacer : MonoBehaviour
                 lastGridPos = gridPos;
 
                 // Check if valid placement
-                bool isValid = gridSystem.IsValidPlacement(gridPos) && PathValidator.HasAdjacentRoad(gridSystem, gridPos);
+                Building buildingData = currentBuildingPrefab.GetComponent<Building>();
+                Vector2Int footprint = buildingData != null ? buildingData.footprintSize : new Vector2Int(1, 1);
+                bool isValid = gridSystem.IsAreaValidPlacement(gridPos, footprint) &&
+                               PathValidator.HasAdjacentRoadInArea(gridSystem, gridPos, footprint);
 
                 // Update ghost position
                 Vector3 worldPos = gridSystem.GridToWorld(gridPos);
+                Vector3 footprintOffset = new Vector3(
+                    (footprint.x - 1) * gridSystem.cellSize * 0.5f,
+                    0f,
+                    (footprint.y - 1) * gridSystem.cellSize * 0.5f);
+                worldPos += footprintOffset;
                 worldPos.y = ghostHeight;
                 ghostObject.transform.position = worldPos;
 
@@ -129,14 +137,22 @@ public class BuildingPlacer : MonoBehaviour
 
     void TryPlaceBuilding()
     {
-        if (gridSystem.IsValidPlacement(lastGridPos) && PathValidator.HasAdjacentRoad(gridSystem, lastGridPos))
+        Building buildingData = currentBuildingPrefab.GetComponent<Building>();
+        Vector2Int footprint = buildingData != null ? buildingData.footprintSize : new Vector2Int(1, 1);
+
+        if (gridSystem.IsAreaValidPlacement(lastGridPos, footprint) &&
+            PathValidator.HasAdjacentRoadInArea(gridSystem, lastGridPos, footprint))
         {
             // Place actual building
             Vector3 worldPos = gridSystem.GridToWorld(lastGridPos);
+            Vector3 footprintOffset = new Vector3(
+                (footprint.x - 1) * gridSystem.cellSize * 0.5f,
+                0f,
+                (footprint.y - 1) * gridSystem.cellSize * 0.5f);
+            worldPos += footprintOffset;
 
 
             // Check resources
-            Building buildingData = currentBuildingPrefab.GetComponent<Building>();
             if (buildingData != null)
             {
                 if (!ResourceManager.Instance.CanAfford(buildingData.foodCost, buildingData.woodCost, buildingData.stoneCost))
@@ -149,10 +165,15 @@ public class BuildingPlacer : MonoBehaviour
 
             GameObject building = Instantiate(currentBuildingPrefab, worldPos, Quaternion.identity);
             building.name = currentBuildingPrefab.name;
-            building.GetComponent<Building>().RegisterBuildingInPopulationManager();
+            Building placedBuilding = building.GetComponent<Building>();
+            if (placedBuilding != null)
+            {
+                placedBuilding.SetGridOrigin(lastGridPos);
+                placedBuilding.RegisterBuildingInPopulationManager();
+            }
 
             // Mark grid as occupied
-            gridSystem.SetOccupied(lastGridPos, true);
+            gridSystem.SetAreaOccupied(lastGridPos, footprint, true);
 
             Debug.Log($"Building placed at {lastGridPos}");
             // After Instantiate, spend resources:

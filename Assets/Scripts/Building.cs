@@ -8,6 +8,11 @@ public class Building : MonoBehaviour
     public int woodCost;
     public int stoneCost;
 
+    [Header("Footprint")]
+    public Vector2Int footprintSize = new Vector2Int(1, 1);
+    public Vector2Int originGridPos;
+    public bool hasGridPosition;
+
     [Header("Production (per second)")]
     public int foodPerSec;
     public int woodPerSec;
@@ -39,6 +44,27 @@ public class Building : MonoBehaviour
         {
             ResourceManager.Instance.IncreaseStorageCap(100);
         }
+    }
+
+    public void SetGridOrigin(Vector2Int origin)
+    {
+        originGridPos = origin;
+        hasGridPosition = true;
+    }
+
+    public Vector2Int GetGridOriginOrFallback(GridSystem gridSystem)
+    {
+        if (hasGridPosition)
+        {
+            return originGridPos;
+        }
+
+        if (gridSystem != null)
+        {
+            return gridSystem.WorldToGrid(transform.position);
+        }
+
+        return Vector2Int.zero;
     }
     void ProduceResources()
     {

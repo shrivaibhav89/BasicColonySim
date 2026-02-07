@@ -28,4 +28,26 @@ public static class PathValidator
 
         return false;
     }
+
+    public static bool HasAdjacentRoadInArea(GridSystem gridSystem, Vector2Int origin, Vector2Int size, int maxDistance = 2)
+    {
+        if (gridSystem == null)
+        {
+            return false;
+        }
+
+        for (int x = 0; x < size.x; x++)
+        {
+            for (int y = 0; y < size.y; y++)
+            {
+                Vector2Int gridPos = new Vector2Int(origin.x + x, origin.y + y);
+                if (HasAdjacentRoad(gridSystem, gridPos, maxDistance))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
