@@ -5,21 +5,37 @@ public class BuildingPlacer : MonoBehaviour
     [Header("References")]
     public GridSystem gridSystem;
     public Camera mainCamera;
+    public RoadManager roadManager;
 
     [Header("Placement Settings")]
     public GameObject currentBuildingPrefab;
     public Material validPlacementMaterial;
     public Material invalidPlacementMaterial;
     public float ghostHeight = 0.5f;
+    public KeyCode roadModeHotkey = KeyCode.R;
 
     private GameObject ghostObject;
     private bool isPlacing = false;
     private Vector2Int lastGridPos;
     private MeshRenderer[] ghostRenderers;
 
+    private enum PlacementMode
+    {
+        None,
+        Building,
+        Road
+    }
+
+    private PlacementMode placementMode = PlacementMode.None;
+
     void Update()
     {
-        if (isPlacing && currentBuildingPrefab != null)
+        if (Input.GetKeyDown(roadModeHotkey))
+        {
+            ToggleRoadPlacement();
+        }
+
+        if (placementMode == PlacementMode.Building && isPlacing && currentBuildingPrefab != null)
         {
             UpdateGhostPosition();
 
@@ -33,12 +49,21 @@ public class BuildingPlacer : MonoBehaviour
                 CancelPlacement();
             }
         }
+        else if (placementMode == PlacementMode.Road)
+        {
+            if (Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape))
+            {
+                StopRoadPlacement();
+            }
+        }
     }
 
     public void StartPlacement(GameObject buildingPrefab)
     {
+        StopRoadPlacement();
         currentBuildingPrefab = buildingPrefab;
         isPlacing = true;
+        placementMode = PlacementMode.Building;
 
         // Create ghost preview
         if (ghostObject != null)
@@ -85,7 +110,7 @@ public class BuildingPlacer : MonoBehaviour
                 lastGridPos = gridPos;
 
                 // Check if valid placement
-                bool isValid = gridSystem.IsValidPlacement(gridPos);
+                bool isValid = gridSystem.IsValidPlacement(gridPos) && PathValidator.HasAdjacentRoad(gridSystem, gridPos);
 
                 // Update ghost position
                 Vector3 worldPos = gridSystem.GridToWorld(gridPos);
@@ -104,7 +129,7 @@ public class BuildingPlacer : MonoBehaviour
 
     void TryPlaceBuilding()
     {
-        if (gridSystem.IsValidPlacement(lastGridPos))
+        if (gridSystem.IsValidPlacement(lastGridPos) && PathValidator.HasAdjacentRoad(gridSystem, lastGridPos))
         {
             // Place actual building
             Vector3 worldPos = gridSystem.GridToWorld(lastGridPos);
@@ -141,11 +166,18 @@ public class BuildingPlacer : MonoBehaviour
         }
         else
         {
-            Debug.Log("Invalid placement location!");
+            Debug.Log("Invalid placement location! Buildings must be adjacent to a road.");
         }
     }
 
     void CancelPlacement()
+    {
+        CancelBuildingPlacement(true);
+        StopRoadPlacement();
+        placementMode = PlacementMode.None;
+    }
+
+    private void CancelBuildingPlacement(bool logMessage)
     {
         isPlacing = false;
 
@@ -156,6 +188,42 @@ public class BuildingPlacer : MonoBehaviour
         }
 
         currentBuildingPrefab = null;
-        Debug.Log("Placement cancelled");
+        if (logMessage)
+        {
+            Debug.Log("Placement cancelled");
+        }
+    }
+
+    public void StartRoadPlacement()
+    {
+        CancelBuildingPlacement(false);
+        placementMode = PlacementMode.Road;
+        if (roadManager != null)
+        {
+            roadManager.SetRoadPlacementActive(true);
+        }
+    }
+
+    private void ToggleRoadPlacement()
+    {
+        if (placementMode == PlacementMode.Road)
+        {
+            StopRoadPlacement();
+            return;
+        }
+
+        StartRoadPlacement();
+    }
+
+    private void StopRoadPlacement()
+    {
+        if (roadManager != null)
+        {
+            roadManager.SetRoadPlacementActive(false);
+        }
+        if (placementMode == PlacementMode.Road)
+        {
+            placementMode = PlacementMode.None;
+        }
     }
 }

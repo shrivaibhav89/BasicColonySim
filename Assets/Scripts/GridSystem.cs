@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class GridSystem : MonoBehaviour
 {
@@ -9,6 +10,7 @@ public class GridSystem : MonoBehaviour
     
     // Track which tiles are occupied
     private bool[,] occupiedTiles;
+    private HashSet<Vector2Int> roadTiles = new HashSet<Vector2Int>();
     
     void Awake()
     {
@@ -51,5 +53,25 @@ public class GridSystem : MonoBehaviour
         {
             occupiedTiles[gridPos.x, gridPos.y] = occupied;
         }
+    }
+
+    public void SetRoad(Vector2Int gridPos, bool isRoad)
+    {
+        if (gridPos.x < 0 || gridPos.x >= gridWidth) return;
+        if (gridPos.y < 0 || gridPos.y >= gridHeight) return;
+
+        if (isRoad)
+        {
+            roadTiles.Add(gridPos);
+        }
+        else
+        {
+            roadTiles.Remove(gridPos);
+        }
+    }
+
+    public bool IsRoadAt(Vector2Int gridPos)
+    {
+        return roadTiles.Contains(gridPos);
     }
 }
