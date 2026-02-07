@@ -126,10 +126,16 @@ MonoBehaviour:
   woodCost: 0
   stoneCost: 0
   footprintSize: {x: 3, y: 3}
+  originGridPos: {x: 0, y: 0}
+  hasGridPosition: 0
   foodPerSec: 0
   woodPerSec: 0
   stonePerSec: 0
   populationCapacity: 0
   requiredWorkers: 0
   assignedWorkers: 0
+  isDropoff: 1
   isGhost: 0
+  storedFood: 0
+  storedWood: 0
+  storedStone: 0

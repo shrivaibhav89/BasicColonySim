@@ -8,6 +8,7 @@ public class UIManager : MonoBehaviour
     public Text woodText;
     public Text stoneText;
     public Text populationText;
+    public Text idleVillagersText;
     void Start()
     {
         ResourceManager.Instance.OnResourcesChanged += UpdateUI;
@@ -33,6 +34,11 @@ public class UIManager : MonoBehaviour
         woodText.text = $"Wood: {rm.wood}/{rm.woodCap}";
         stoneText.text = $"Stone: {rm.stone}/{rm.stoneCap}";
         populationText.text = $"Pop: {pm.currentPopulation}/{pm.maxPopulation}";
+
+        if (idleVillagersText != null)
+        {
+            idleVillagersText.text = $"Idle: {pm.GetIdleVillagers()}";
+        }
 
         foodText.color = rm.food >= rm.foodCap * 0.9f ? Color.red : Color.white;
         woodText.color = rm.wood >= rm.woodCap * 0.9f ? Color.red : Color.white;

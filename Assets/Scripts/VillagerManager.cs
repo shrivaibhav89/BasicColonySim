@@ -50,8 +50,9 @@ public class VillagerManager : MonoBehaviour
         return villager;
     }
 
-    public bool AssignWorkerToBuilding(Building workBuilding)
+    public bool AssignWorkerToBuilding(Building workBuilding, out Villager villager)
     {
+        villager = null;
         if (workBuilding == null || gridSystem == null)
         {
             return false;
@@ -64,18 +65,19 @@ public class VillagerManager : MonoBehaviour
             return false;
         }
 
-        Villager villager = GetVillagerFromPool();
-        if (villager == null)
+        Villager pooledVillager = GetVillagerFromPool();
+        if (pooledVillager == null)
         {
             return false;
         }
 
-        Building storage = FindNearestStorageBuilding(workBuilding.transform.position);
+        Building storage = GetNearestDropoffBuilding(workBuilding.transform.position);
 
-        villager.gameObject.SetActive(true);
-        villager.Initialize(this, gridSystem);
-        villager.AssignWork(home, workBuilding, storage);
-        activeVillagers.Add(villager);
+        pooledVillager.gameObject.SetActive(true);
+        pooledVillager.Initialize(this, gridSystem);
+        pooledVillager.AssignWork(home, workBuilding, storage);
+        activeVillagers.Add(pooledVillager);
+        villager = pooledVillager;
         return true;
     }
 
@@ -95,9 +97,33 @@ public class VillagerManager : MonoBehaviour
         return FindNearestBuilding(fromPosition, building => building.populationCapacity > 0);
     }
 
-    private Building FindNearestStorageBuilding(Vector3 fromPosition)
+    public Building GetNearestDropoffBuilding(Vector3 fromPosition)
     {
-        return FindNearestBuilding(fromPosition, building => building.buildingName == "Storage");
+        return FindNearestBuilding(fromPosition, building =>
+            building.isDropoff ||
+            NameLooksLikeDropoff(building));
+    }
+
+    private bool NameLooksLikeDropoff(Building building)
+    {
+        if (building == null)
+        {
+            return false;
+        }
+
+        string primary = building.buildingName;
+        if (string.IsNullOrWhiteSpace(primary))
+        {
+            primary = building.gameObject != null ? building.gameObject.name : string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(primary))
+        {
+            return false;
+        }
+
+        string lower = primary.ToLowerInvariant();
+        return lower.Contains("storage") || lower.Contains("townhall") || lower.Contains("center") ;
     }
 
     private Building FindNearestBuilding(Vector3 fromPosition, System.Func<Building, bool> predicate)

@@ -22,6 +22,14 @@ public class Villager : MonoBehaviour
     public float workDuration = 2f;
     public float depositDuration = 1f;
 
+    [Header("Carrying")]
+    public int carryCapacityPerResource = 5;
+
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    [SerializeField] private string idleBool = "IsIdle";
+    [SerializeField] private string workBool = "IsWorking";
+
     public VillagerState CurrentState { get; private set; } = VillagerState.Idle;
 
     private GridSystem gridSystem;
@@ -38,6 +46,9 @@ public class Villager : MonoBehaviour
     private Building storageBuilding;
 
     private float stateTimer;
+    private int carryFood;
+    private int carryWood;
+    private int carryStone;
 
     public void Initialize(VillagerManager villagerManager, GridSystem grid)
     {
@@ -46,6 +57,7 @@ public class Villager : MonoBehaviour
         CurrentState = VillagerState.Idle;
         currentPath.Clear();
         pathIndex = 0;
+        SetIdleAnimation();
     }
 
     public void AssignWork(Building home, Building work, Building storage)
@@ -53,23 +65,15 @@ public class Villager : MonoBehaviour
         homeBuilding = home;
         workBuilding = work;
         storageBuilding = storage;
+        ClearCargo();
 
         Vector2Int homeOrigin = homeBuilding != null ? homeBuilding.GetGridOriginOrFallback(gridSystem) : Vector2Int.zero;
         transform.position = gridSystem.GridToWorld(homeOrigin);
 
-        Vector2Int workTarget = manager.GetBestTargetTile(workBuilding);
-        if (manager.TryGetNearestRoadTile(homeBuilding, out Vector2Int roadTile) && roadTile != homeOrigin)
-        {
-            pendingTarget = workTarget;
-            hasPendingTarget = true;
-            SetPathTo(roadTile);
-        }
-        else
-        {
-            SetPathTo(workTarget);
-        }
+        SetPathToBuilding(workBuilding, homeBuilding);
 
         CurrentState = VillagerState.MovingToWork;
+        SetMovingAnimation();
     }
 
     void Update()
@@ -97,26 +101,74 @@ public class Villager : MonoBehaviour
 
         if (CurrentState == VillagerState.Working)
         {
-            if (storageBuilding != null)
+            if (storageBuilding == null && manager != null && workBuilding != null)
             {
-                SetPathTo(manager.GetBestTargetTile(storageBuilding));
+                storageBuilding = manager.GetNearestDropoffBuilding(workBuilding.transform.position);
+            }
+
+            if (IsCargoFull())
+            {
+                if (storageBuilding != null)
+                {
+                    if (workBuilding != null)
+                    {
+                        workBuilding.NotifyVillagerStoppedWork(this);
+                    }
+
+                    SetPathToBuilding(storageBuilding, workBuilding);
+                    CurrentState = VillagerState.MovingToStorage;
+                    SetMovingAnimation();
+                    return;
+                }
+
+                stateTimer = workDuration;
+                SetWorkAnimation();
+                return;
+            }
+
+            if (storageBuilding == null)
+            {
+                stateTimer = workDuration;
+                SetWorkAnimation();
+                return;
+            }
+
+            if (!HarvestFromWorkBuilding())
+            {
+                stateTimer = workDuration;
+                SetWorkAnimation();
+                return;
+            }
+
+            if (IsCargoFull() && workBuilding != null)
+            {
+                workBuilding.NotifyVillagerStoppedWork(this);
+            }
+
+            if (IsCargoFull())
+            {
+                SetPathToBuilding(storageBuilding, workBuilding);
                 CurrentState = VillagerState.MovingToStorage;
+                SetMovingAnimation();
             }
             else
             {
-                CurrentState = VillagerState.Idle;
+                stateTimer = workDuration;
+                SetWorkAnimation();
             }
         }
         else if (CurrentState == VillagerState.Depositing)
         {
             if (workBuilding != null)
             {
-                SetPathTo(manager.GetBestTargetTile(workBuilding));
+                SetPathToBuilding(workBuilding, storageBuilding);
                 CurrentState = VillagerState.MovingToWork;
+                SetMovingAnimation();
             }
             else
             {
                 CurrentState = VillagerState.Idle;
+                SetIdleAnimation();
             }
         }
     }
@@ -126,6 +178,7 @@ public class Villager : MonoBehaviour
         if (currentPath == null || currentPath.Count == 0)
         {
             CurrentState = VillagerState.Idle;
+            SetIdleAnimation();
             return;
         }
 
@@ -162,6 +215,11 @@ public class Villager : MonoBehaviour
 
             CurrentState = VillagerState.Working;
             stateTimer = workDuration;
+            if (workBuilding != null)
+            {
+                workBuilding.NotifyVillagerStartedWork(this);
+            }
+            SetWorkAnimation();
         }
         else if (CurrentState == VillagerState.MovingToStorage)
         {
@@ -174,10 +232,13 @@ public class Villager : MonoBehaviour
 
             CurrentState = VillagerState.Depositing;
             stateTimer = depositDuration;
+            DepositCargo();
+            SetIdleAnimation();
         }
         else
         {
             CurrentState = VillagerState.Idle;
+            SetIdleAnimation();
         }
     }
 
@@ -194,6 +255,32 @@ public class Villager : MonoBehaviour
         }
     }
 
+    private void SetPathToBuilding(Building targetBuilding, Building roadPreferenceBuilding)
+    {
+        if (manager == null)
+        {
+            Vector2Int fallback = targetBuilding != null ? targetBuilding.GetGridOriginOrFallback(gridSystem) : Vector2Int.zero;
+            SetPathTo(fallback);
+            return;
+        }
+
+        Vector2Int target = manager.GetBestTargetTile(targetBuilding);
+        Vector2Int start = gridSystem.WorldToGrid(transform.position);
+
+        Building roadSearchSource = roadPreferenceBuilding != null ? roadPreferenceBuilding : targetBuilding;
+        if (manager.TryGetNearestRoadTile(roadSearchSource, out Vector2Int roadTile)
+            && roadTile != start
+            && roadTile != target)
+        {
+            pendingTarget = target;
+            hasPendingTarget = true;
+            SetPathTo(roadTile);
+            return;
+        }
+
+        SetPathTo(target);
+    }
+
     private float GetCurrentMoveSpeed()
     {
         if (gridSystem == null)
@@ -204,5 +291,135 @@ public class Villager : MonoBehaviour
         Vector2Int gridPos = gridSystem.WorldToGrid(transform.position);
         bool onRoad = gridSystem.IsRoadAt(gridPos);
         return onRoad ? moveSpeed : moveSpeed * groundSpeedMultiplier;
+    }
+
+    private bool HarvestFromWorkBuilding()
+    {
+        if (workBuilding == null)
+        {
+            return false;
+        }
+
+        int harvestedFood = CalculateHarvestAmount(workBuilding.foodPerSec);
+        int harvestedWood = CalculateHarvestAmount(workBuilding.woodPerSec);
+        int harvestedStone = CalculateHarvestAmount(workBuilding.stonePerSec);
+
+        bool collected = false;
+
+        if (harvestedFood > 0 && carryFood < carryCapacityPerResource)
+        {
+            int space = carryCapacityPerResource - carryFood;
+            int add = Mathf.Min(space, harvestedFood);
+            carryFood += add;
+            collected |= add > 0;
+        }
+
+        if (harvestedWood > 0 && carryWood < carryCapacityPerResource)
+        {
+            int space = carryCapacityPerResource - carryWood;
+            int add = Mathf.Min(space, harvestedWood);
+            carryWood += add;
+            collected |= add > 0;
+        }
+
+        if (harvestedStone > 0 && carryStone < carryCapacityPerResource)
+        {
+            int space = carryCapacityPerResource - carryStone;
+            int add = Mathf.Min(space, harvestedStone);
+            carryStone += add;
+            collected |= add > 0;
+        }
+
+        return collected;
+    }
+
+    private int CalculateHarvestAmount(int ratePerSecond)
+    {
+        if (ratePerSecond <= 0)
+        {
+            return 0;
+        }
+
+        float amount = ratePerSecond * workDuration;
+        return Mathf.Max(1, Mathf.CeilToInt(amount));
+    }
+
+    private bool IsCargoFull()
+    {
+        return carryFood >= carryCapacityPerResource
+            || carryWood >= carryCapacityPerResource
+            || carryStone >= carryCapacityPerResource;
+    }
+
+    private void DepositCargo()
+    {
+        if (carryFood == 0 && carryWood == 0 && carryStone == 0)
+        {
+            return;
+        }
+
+        ResourceManager.Instance.AddResources(carryFood, carryWood, carryStone);
+        ClearCargo();
+    }
+
+    private void ClearCargo()
+    {
+        carryFood = 0;
+        carryWood = 0;
+        carryStone = 0;
+    }
+
+    private void SetIdleAnimation()
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(workBool))
+        {
+            animator.SetBool(workBool, false);
+        }
+
+        if (!string.IsNullOrEmpty(idleBool))
+        {
+            animator.SetBool(idleBool, true);
+        }
+    }
+
+    private void SetWorkAnimation()
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(idleBool))
+        {
+            animator.SetBool(idleBool, false);
+        }
+
+        if (!string.IsNullOrEmpty(workBool))
+        {
+            animator.SetBool(workBool, true);
+        }
+    }
+
+    private void SetMovingAnimation()
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(idleBool))
+        {
+            animator.SetBool(idleBool, false);
+        }
+
+        if (!string.IsNullOrEmpty(workBool))
+        {
+            animator.SetBool(workBool, false);
+        }
     }
 }

@@ -23,26 +23,30 @@ public class Building : MonoBehaviour
     public int requiredWorkers;    // For production buildings
     public int assignedWorkers;
 
+    public Villager AssignedVillager { get; private set; }
+
+    [Header("Dropoff")]
+    public bool isDropoff;
+
     [HideInInspector]
     public bool isGhost;
 
-    // Production tick system
-    private float productionTimer = 0f;
-    private const float PRODUCTION_INTERVAL = 1f; // 1 second
+    private bool isVillagerWorking;
 
     public void RegisterBuildingInPopulationManager()
     {
 
         PopulationManager.Instance.RegisterBuilding(this);
 
-        // Start production if it's a production building
-        if (foodPerSec > 0 || woodPerSec > 0 || stonePerSec > 0)
-        {
-            InvokeRepeating("ProduceResources", 1f, 1f);
-        }
         if (buildingName == "Storage")
         {
+            isDropoff = true;
             ResourceManager.Instance.IncreaseStorageCap(100);
+        }
+
+        if (buildingName == "TownCenter" || buildingName == "Town Center")
+        {
+            isDropoff = true;
         }
     }
 
@@ -66,54 +70,46 @@ public class Building : MonoBehaviour
 
         return Vector2Int.zero;
     }
-    void ProduceResources()
+    public bool RequestVillagerAssignment()
     {
-        // Only produce if has workers
-        if (assignedWorkers >= requiredWorkers)
+        if (AssignedVillager != null)
         {
-            ResourceManager.Instance.AddResources(foodPerSec, woodPerSec, stonePerSec);
+            return false;
         }
+
+        if (VillagerManager.Instance == null)
+        {
+            return false;
+        }
+
+        if (VillagerManager.Instance.AssignWorkerToBuilding(this, out Villager villager))
+        {
+            AssignedVillager = villager;
+            assignedWorkers += 1;
+            return true;
+        }
+
+        return false;
     }
 
-    void Update()
+    public void NotifyVillagerStartedWork(Villager villager)
     {
-        if (isGhost)
+        if (villager == null || villager != AssignedVillager)
         {
             return;
         }
 
-        // Only production buildings generate resources
-        if (IsProductionBuilding())
-        {
-            HandleProduction();
-        }
+        isVillagerWorking = true;
     }
 
-    void HandleProduction()
+    public void NotifyVillagerStoppedWork(Villager villager)
     {
-        // Increment timer
-        productionTimer += Time.deltaTime;
-
-        // Check if 1 second has passed
-        if (productionTimer >= PRODUCTION_INTERVAL)
+        if (villager == null || villager != AssignedVillager)
         {
-            // Reset timer
-            productionTimer = 0f;
-
-            // Only produce if we have enough workers assigned
-            if (assignedWorkers >= requiredWorkers)
-            {
-                // Add resources to the manager
-                if (foodPerSec > 0)
-                    ResourceManager.Instance.AddResources(foodPerSec, 0, 0);
-
-                if (woodPerSec > 0)
-                    ResourceManager.Instance.AddResources(0, woodPerSec, 0);
-
-                if (stonePerSec > 0)
-                    ResourceManager.Instance.AddResources(0, 0, stonePerSec);
-            }
+            return;
         }
+
+        isVillagerWorking = false;
     }
 
     bool IsProductionBuilding()
@@ -126,5 +122,7 @@ public class Building : MonoBehaviour
     {
         // Free up workers when building is destroyed
         // Will integrate with PopulationManager in Day 7
+        AssignedVillager = null;
+        isVillagerWorking = false;
     }
 }

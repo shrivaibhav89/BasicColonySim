@@ -48,14 +48,18 @@ public class PopulationManager : MonoBehaviour
                 int toAssign = Mathf.Min(needed, available);
                 for (int i = 0; i < toAssign; i++)
                 {
-                    if (VillagerManager.Instance != null && VillagerManager.Instance.AssignWorkerToBuilding(building))
+                    if (building.RequestVillagerAssignment())
                     {
-                        building.assignedWorkers += 1;
                         Debug.Log($"{building.buildingName} now has {building.assignedWorkers}/{building.requiredWorkers} workers");
                     }
                 }
             }
         }
+    }
+
+    public int GetIdleVillagers()
+    {
+        return Mathf.Max(0, currentPopulation - GetTotalAssignedWorkers());
     }
     
     int GetTotalAssignedWorkers()
