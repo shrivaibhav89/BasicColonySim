@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c82349f815ce8249ab6819af935e17b, type: 3}
   m_Name: TownHall_Data
   m_EditorClassIdentifier: 
-  buildingName: Storage
+  buildingName: TownHall
   foodCost: 0
   woodCost: 0
   stoneCost: 0

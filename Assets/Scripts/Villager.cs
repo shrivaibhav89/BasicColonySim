@@ -49,14 +49,37 @@ public class Villager : MonoBehaviour
     private int carryFood;
     private int carryWood;
     private int carryStone;
+    private Vector3 moveOffset;
 
     public void Initialize(VillagerManager villagerManager, GridSystem grid)
     {
         manager = villagerManager;
         gridSystem = grid;
-        CurrentState = VillagerState.Idle;
+        SetIdleAt(transform.position);
+    }
+
+    public void SetMoveOffset(Vector3 offset)
+    {
+        moveOffset = offset;
+    }
+
+    public bool IsAvailableForWork()
+    {
+        return CurrentState == VillagerState.Idle && workBuilding == null;
+    }
+
+    public void SetIdleAt(Vector3 worldPosition)
+    {
+        homeBuilding = null;
+        workBuilding = null;
+        storageBuilding = null;
+        ClearCargo();
         currentPath.Clear();
         pathIndex = 0;
+        hasPendingTarget = false;
+        targetWorldPos = worldPosition;
+        transform.position = worldPosition;
+        CurrentState = VillagerState.Idle;
         SetIdleAnimation();
     }
 
@@ -101,13 +124,26 @@ public class Villager : MonoBehaviour
 
         if (CurrentState == VillagerState.Working)
         {
-            if (storageBuilding == null && manager != null && workBuilding != null)
+            if (storageBuilding == null && manager != null)
             {
-                storageBuilding = manager.GetNearestDropoffBuilding(workBuilding.transform.position);
+                storageBuilding = manager.GetDropoffForWorkBuilding(workBuilding);
+                if (storageBuilding == null)
+                {
+                    storageBuilding = manager.GetNearestDropoffBuilding(transform.position);
+                }
             }
 
             if (IsCargoFull())
             {
+                if (manager != null)
+                {
+                    storageBuilding = manager.GetDropoffForWorkBuilding(workBuilding);
+                    if (storageBuilding == null)
+                    {
+                        storageBuilding = manager.GetNearestDropoffBuilding(transform.position);
+                    }
+                }
+
                 if (storageBuilding != null)
                 {
                     if (workBuilding != null)
@@ -147,6 +183,22 @@ public class Villager : MonoBehaviour
 
             if (IsCargoFull())
             {
+                if (manager != null)
+                {
+                    storageBuilding = manager.GetDropoffForWorkBuilding(workBuilding) ?? storageBuilding;
+                    if (storageBuilding == null)
+                    {
+                        storageBuilding = manager.GetNearestDropoffBuilding(transform.position);
+                    }
+                }
+
+                if (storageBuilding == null)
+                {
+                    stateTimer = workDuration;
+                    SetWorkAnimation();
+                    return;
+                }
+
                 SetPathToBuilding(storageBuilding, workBuilding);
                 CurrentState = VillagerState.MovingToStorage;
                 SetMovingAnimation();
@@ -199,7 +251,7 @@ public class Villager : MonoBehaviour
 
         Vector3 nextPos = gridSystem.GridToWorld(currentPath[pathIndex]);
         nextPos.y = transform.position.y;
-        targetWorldPos = nextPos;
+        targetWorldPos = nextPos + new Vector3(moveOffset.x, 0f, moveOffset.z);
     }
 
     private void OnReachedDestination()
@@ -256,7 +308,7 @@ public class Villager : MonoBehaviour
         {
             Vector3 startPos = gridSystem.GridToWorld(currentPath[0]);
             startPos.y = transform.position.y;
-            targetWorldPos = startPos;
+            targetWorldPos = startPos + new Vector3(moveOffset.x, 0f, moveOffset.z);
         }
     }
 

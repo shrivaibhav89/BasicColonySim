@@ -115,6 +115,14 @@ public class BuildingPlacer : MonoBehaviour
                 bool isValid = gridSystem.IsAreaValidPlacement(gridPos, footprint) &&
                                PathValidator.HasAdjacentRoadInArea(gridSystem, gridPos, footprint);
 
+                if (isValid && buildingComponent != null && buildingComponent.buildingData != null && ResourceManager.Instance != null)
+                {
+                    isValid = ResourceManager.Instance.CanAfford(
+                        buildingComponent.buildingData.foodCost,
+                        buildingComponent.buildingData.woodCost,
+                        buildingComponent.buildingData.stoneCost);
+                }
+
                 // Update ghost position
                 Vector3 worldPos = gridSystem.GridToWorld(gridPos);
                 Vector3 footprintOffset = new Vector3(

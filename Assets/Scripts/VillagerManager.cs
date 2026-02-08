@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,6 +14,10 @@ public class VillagerManager : MonoBehaviour
     [Header("Pooling")]
     public int initialPoolSize = 5;
 
+    [Header("Initial Spawn")]
+    public bool spawnInitialVillagers = true;
+    public int initialVillagerCountOverride = -1;
+
     private readonly Queue<Villager> pool = new Queue<Villager>();
     private readonly List<Villager> activeVillagers = new List<Villager>();
 
@@ -22,6 +27,20 @@ public class VillagerManager : MonoBehaviour
         else Destroy(gameObject);
 
         WarmPool();
+    }
+
+    void Start()
+    {
+        if (spawnInitialVillagers)
+        {
+            StartCoroutine(SpawnInitialVillagersNextFrame());
+        }
+    }
+
+    private IEnumerator SpawnInitialVillagersNextFrame()
+    {
+        yield return null;
+        SpawnInitialVillagers();
     }
 
     private void WarmPool()
@@ -61,11 +80,14 @@ public class VillagerManager : MonoBehaviour
         Building home = FindNearestResidentialBuilding(workBuilding.transform.position);
         if (home == null)
         {
-            Debug.Log("No residential building available to spawn villager.");
-            return false;
+            home = GetNearestDropoffBuilding(workBuilding.transform.position);
+        }
+        if (home == null)
+        {
+            home = workBuilding;
         }
 
-        Villager pooledVillager = GetVillagerFromPool();
+        Villager pooledVillager = GetAvailableVillager();
         if (pooledVillager == null)
         {
             return false;
@@ -76,9 +98,41 @@ public class VillagerManager : MonoBehaviour
         pooledVillager.gameObject.SetActive(true);
         pooledVillager.Initialize(this, gridSystem);
         pooledVillager.AssignWork(home, workBuilding, storage);
-        activeVillagers.Add(pooledVillager);
+        if (!activeVillagers.Contains(pooledVillager))
+        {
+            activeVillagers.Add(pooledVillager);
+        }
         villager = pooledVillager;
         return true;
+    }
+
+    private Villager GetAvailableVillager()
+    {
+        for (int i = 0; i < activeVillagers.Count; i++)
+        {
+            Villager active = activeVillagers[i];
+            if (active != null && active.IsAvailableForWork())
+            {
+                return active;
+            }
+        }
+
+        int desired = PopulationManager.Instance != null ? PopulationManager.Instance.currentPopulation : 0;
+        if (activeVillagers.Count < desired)
+        {
+            Villager spawned = GetVillagerFromPool();
+            if (spawned != null)
+            {
+                spawned.gameObject.SetActive(true);
+                spawned.Initialize(this, gridSystem);
+                Vector3 spawnPos = GetInitialSpawnPosition(activeVillagers.Count);
+                spawned.SetIdleAt(spawnPos);
+                activeVillagers.Add(spawned);
+                return spawned;
+            }
+        }
+
+        return null;
     }
 
     private Villager GetVillagerFromPool()
@@ -92,6 +146,74 @@ public class VillagerManager : MonoBehaviour
         return villager;
     }
 
+    private void SpawnInitialVillagers()
+    {
+        int desired = PopulationManager.Instance != null ? PopulationManager.Instance.currentPopulation : 0;
+        if (initialVillagerCountOverride >= 0)
+        {
+            desired = initialVillagerCountOverride;
+        }
+
+        for (int i = activeVillagers.Count; i < desired; i++)
+        {
+            Villager spawned = GetVillagerFromPool();
+            if (spawned == null)
+            {
+                break;
+            }
+
+            spawned.gameObject.SetActive(true);
+            spawned.Initialize(this, gridSystem);
+            Vector3 spawnPos = GetInitialSpawnPosition(i);
+            spawned.SetIdleAt(spawnPos);
+            activeVillagers.Add(spawned);
+        }
+    }
+
+    private Vector3 GetInitialSpawnPosition(int index)
+    {
+        Building anchor = GetNearestDropoffBuilding(Vector3.zero);
+        Vector2Int baseGrid = gridSystem != null
+            ? (anchor != null ? anchor.GetGridOriginOrFallback(gridSystem) : Vector2Int.zero)
+            : Vector2Int.zero;
+
+        Vector2Int offset = GetSpawnOffset(index);
+        Vector2Int gridPos = baseGrid + offset;
+
+        if (gridSystem != null)
+        {
+            Vector3 world = gridSystem.GridToWorld(gridPos);
+            world.y = 0f;
+            return world;
+        }
+
+        Vector3 anchorPos = anchor != null ? anchor.transform.position : Vector3.zero;
+        return anchorPos + new Vector3(offset.x, 0f, offset.y);
+    }
+
+    private Vector2Int GetSpawnOffset(int index)
+    {
+        Vector2Int[] offsets = new Vector2Int[]
+        {
+            new Vector2Int(0, 0),
+            new Vector2Int(1, 0),
+            new Vector2Int(-1, 0),
+            new Vector2Int(0, 1),
+            new Vector2Int(0, -1),
+            new Vector2Int(1, 1),
+            new Vector2Int(-1, 1),
+            new Vector2Int(1, -1),
+            new Vector2Int(-1, -1)
+        };
+
+        if (index < 0)
+        {
+            index = 0;
+        }
+
+        return offsets[index % offsets.Length];
+    }
+
     private Building FindNearestResidentialBuilding(Vector3 fromPosition)
     {
         return FindNearestBuilding(fromPosition, building => building.GetPopulationCapacity() > 0);
@@ -102,6 +224,11 @@ public class VillagerManager : MonoBehaviour
         return FindNearestBuilding(fromPosition, building =>
             building.IsDropoff ||
             NameLooksLikeDropoff(building));
+    }
+
+    public Building GetDropoffForWorkBuilding(Building workBuilding)
+    {
+        return workBuilding != null ? workBuilding.GetDropoff() : null;
     }
 
     private bool NameLooksLikeDropoff(Building building)

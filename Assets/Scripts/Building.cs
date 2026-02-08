@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class Building : MonoBehaviour
 {
@@ -9,6 +10,8 @@ public class Building : MonoBehaviour
     [SerializeField] private Vector2Int originGridPos;
     [SerializeField] private bool hasGridPosition;
     public int assignedWorkers;
+    private bool isRegistered;
+    [SerializeField]private Building cachedDropoff;
     // Used for temporary runtime override when no BuildingData exists
     private bool runtimeIsDropoff = false;
 
@@ -22,9 +25,10 @@ public class Building : MonoBehaviour
     public int GetStonePerSec() => buildingData != null ? buildingData.stonePerSec : 0;
     public int GetPopulationCapacity() => buildingData != null ? buildingData.populationCapacity : 0;
     public int GetRequiredWorkers() => buildingData != null ? buildingData.requiredWorkers : 0;
-    public bool IsDropoff => buildingData != null ? buildingData.isDropoff : runtimeIsDropoff;
+    public bool IsDropoff => buildingData != null ? (buildingData.isDropoff || runtimeIsDropoff) : runtimeIsDropoff;
 
-    public Villager AssignedVillager { get; private set; }
+    public Villager AssignedVillager => assignedVillagers.Count > 0 ? assignedVillagers[0] : null;
+    private readonly List<Villager> assignedVillagers = new List<Villager>();
 
     // Dropoff state is provided by `BuildingData`; a runtime override exists when no data asset is present.
 
@@ -33,22 +37,49 @@ public class Building : MonoBehaviour
 
     private bool isVillagerWorking;
 
+    void Start()
+    {
+        if (!isGhost)
+        {
+            RegisterBuildingInPopulationManager();
+        }
+    }
+
     public void RegisterBuildingInPopulationManager()
     {
-        PopulationManager.Instance.RegisterBuilding(this);
-        string name = buildingData != null ? buildingData.buildingName : (gameObject != null ? gameObject.name : string.Empty);
-        if (name == "Storage")
+        if (isRegistered || PopulationManager.Instance == null)
         {
-            if (buildingData == null)
-                runtimeIsDropoff = true;
+            return;
+        }
+
+        isRegistered = true;
+        string name = buildingData != null ? buildingData.buildingName : (gameObject != null ? gameObject.name : string.Empty);
+        string nameLower = string.IsNullOrWhiteSpace(name) ? string.Empty : name.ToLowerInvariant();
+        bool isStorage = nameLower.Contains("storage");
+        bool isTownHall = nameLower.Contains("townhall") || nameLower.Contains("town hall") || nameLower.Contains("towncenter") || nameLower.Contains("town center") || nameLower.Contains("center");
+
+        if (isStorage)
+        {
+            runtimeIsDropoff = true;
             ResourceManager.Instance.IncreaseStorageCap(100);
         }
 
-        if (name == "TownCenter" || name == "Town Center")
+        if (isTownHall)
         {
-            if (buildingData == null)
-                runtimeIsDropoff = true;
+            runtimeIsDropoff = true;
         }
+
+        PopulationManager.Instance.RegisterBuilding(this);
+    }
+
+    public void SetDropoff(Building dropoff)
+    {
+        cachedDropoff = dropoff;
+    }
+
+    public Building GetDropoff()
+    {
+        return cachedDropoff;
     }
 
     public void SetGridOrigin(Vector2Int origin)
@@ -73,11 +104,6 @@ public class Building : MonoBehaviour
     }
     public bool RequestVillagerAssignment()
     {
-        if (AssignedVillager != null)
-        {
-            return false;
-        }
-
         if (VillagerManager.Instance == null)
         {
             return false;
@@ -85,8 +111,12 @@ public class Building : MonoBehaviour
 
         if (VillagerManager.Instance.AssignWorkerToBuilding(this, out Villager villager))
         {
-            AssignedVillager = villager;
-            assignedWorkers += 1;
+            if (villager != null && !assignedVillagers.Contains(villager))
+            {
+                assignedVillagers.Add(villager);
+                assignedWorkers += 1;
+                villager.SetMoveOffset(GetWorkerOffset(assignedWorkers - 1));
+            }
             return true;
         }
 
@@ -95,7 +125,7 @@ public class Building : MonoBehaviour
 
     public void NotifyVillagerStartedWork(Villager villager)
     {
-        if (villager == null || villager != AssignedVillager)
+        if (villager == null || !assignedVillagers.Contains(villager))
         {
             return;
         }
@@ -105,7 +135,7 @@ public class Building : MonoBehaviour
 
     public void NotifyVillagerStoppedWork(Villager villager)
     {
-        if (villager == null || villager != AssignedVillager)
+        if (villager == null || !assignedVillagers.Contains(villager))
         {
             return;
         }
@@ -123,7 +153,19 @@ public class Building : MonoBehaviour
     {
         // Free up workers when building is destroyed
         // Will integrate with PopulationManager in Day 7
-        AssignedVillager = null;
+        assignedVillagers.Clear();
         isVillagerWorking = false;
+        if (PopulationManager.Instance != null)
+        {
+            PopulationManager.Instance.UnregisterBuilding(this);
+        }
+    }
+
+    private Vector3 GetWorkerOffset(int index)
+    {
+        float radius = 0.25f;
+        float angle = (index % 6) * 60f;
+        float radians = angle * Mathf.Deg2Rad;
+        return new Vector3(Mathf.Cos(radians) * radius, 0f, Mathf.Sin(radians) * radius);
     }
 }
