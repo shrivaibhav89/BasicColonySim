@@ -228,7 +228,7 @@ public class BuildingPlacer : MonoBehaviour
         }
     }
 
-    private void ToggleRoadPlacement()
+    public void ToggleRoadPlacement()
     {
         if (placementMode == PlacementMode.Road)
         {
