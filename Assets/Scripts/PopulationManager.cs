@@ -11,6 +11,8 @@ public class PopulationManager : MonoBehaviour
     public int maxPopulation = 5;
     
     public event Action OnPopulationChanged;
+    public event Action<Building> OnBuildingRegistered;
+    public event Action<Building> OnWorkersAssigned;
     
     public List<Building> allBuildings = new List<Building>();
     private readonly List<Building> dropoffBuildings = new List<Building>();
@@ -48,6 +50,12 @@ public class PopulationManager : MonoBehaviour
             
         }
         AssignWorkers();
+        OnBuildingRegistered?.Invoke(building);
+    }
+
+    public void NotifyWorkersAssigned(Building building)
+    {
+        OnWorkersAssigned?.Invoke(building);
     }
 
     public void UnregisterBuilding(Building building)

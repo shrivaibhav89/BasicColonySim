@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ece85205db873945a5aedf9af8dcbf9, type: 3}
+  m_Name: Quest_07_ExpandSettlement
+  m_EditorClassIdentifier: 
+  questID: 7
+  questTitle: Expand Settlement
+  questDescription: Reach 30 population to build a thriving colony
+  questType: 1
+  targetBuildingType: 0
+  targetCount: 30
+  targetResourceType: 0
+  foodReward: 20
+  woodReward: 30
+  stoneReward: 20
+  isVictoryQuest: 0

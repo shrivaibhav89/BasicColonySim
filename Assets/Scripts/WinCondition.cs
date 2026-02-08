@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 public class WinCondition : MonoBehaviour
 {
-    public int targetPopulation = 50;
+    private int targetPopulation = 100;
     public GameObject winPanel;
     public Text winText;
     
@@ -12,7 +12,7 @@ public class WinCondition : MonoBehaviour
     void Start()
     {
         winPanel.SetActive(false);
-        PopulationManager.Instance.OnPopulationChanged += CheckWin;
+       // PopulationManager.Instance.OnPopulationChanged += CheckWin;
     }
     
     void CheckWin()
@@ -22,6 +22,17 @@ public class WinCondition : MonoBehaviour
             won = true;
             ShowWin();
         }
+    }
+
+    public void TriggerWinFromQuest()
+    {
+        if (won)
+        {
+            return;
+        }
+
+        won = true;
+        ShowWin();
     }
     
     void ShowWin()

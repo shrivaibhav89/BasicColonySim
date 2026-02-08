@@ -17,6 +17,14 @@ public class BuildingData : ScriptableObject
     public int woodPerSec;
     public int stonePerSec;
 
+    [Header("Production (per harvest)")]
+    public int foodPerHarvest;
+    public int woodPerHarvest;
+    public int stonePerHarvest;
+
+    [Header("Harvest Timing")]
+    public float harvestDuration = 1f;
+
     [Header("Population")]
     public int populationCapacity; // For houses
     public int requiredWorkers;    // For production buildings

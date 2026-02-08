@@ -1,4 +1,6 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class BuildingPlacer : MonoBehaviour
 {
@@ -14,10 +16,15 @@ public class BuildingPlacer : MonoBehaviour
     public float ghostHeight = 0.5f;
     public KeyCode roadModeHotkey = KeyCode.R;
 
+    [Header("Placement UI")]
+    public Text placementErrorText;
+    public float placementErrorDuration = 6f;
+
     private GameObject ghostObject;
     private bool isPlacing = false;
     private Vector2Int lastGridPos;
     private MeshRenderer[] ghostRenderers;
+    private Coroutine placementErrorRoutine;
 
     private enum PlacementMode
     {
@@ -163,13 +170,13 @@ public class BuildingPlacer : MonoBehaviour
             // Check resources
             if (buildingComponent == null || buildingComponent.buildingData == null)
             {
-                Debug.Log("Invalid building data!");
+                ShowPlacementError("Invalid building data!");
                 return;
             }
 
             if (!ResourceManager.Instance.CanAfford(buildingComponent.buildingData.foodCost, buildingComponent.buildingData.woodCost, buildingComponent.buildingData.stoneCost))
             {
-                Debug.Log("Not enough resources!");
+                ShowPlacementError("Not enough resources!");
                 return;
             }
 
@@ -198,8 +205,37 @@ public class BuildingPlacer : MonoBehaviour
         }
         else
         {
-            Debug.Log("Invalid placement location! Buildings must be adjacent to a road.");
+            ShowPlacementError("Invalid placement location! Buildings must be adjacent to a road.");
         }
+    }
+
+    private void ShowPlacementError(string message)
+    {
+        if (placementErrorText == null)
+        {
+            return;
+        }
+
+        placementErrorText.text = message;
+        placementErrorText.enabled = true;
+
+        if (placementErrorRoutine != null)
+        {
+            StopCoroutine(placementErrorRoutine);
+        }
+
+        placementErrorRoutine = StartCoroutine(HidePlacementErrorAfterDelay());
+    }
+
+    private IEnumerator HidePlacementErrorAfterDelay()
+    {
+        yield return new WaitForSeconds(placementErrorDuration);
+        if (placementErrorText != null)
+        {
+            placementErrorText.enabled = false;
+            placementErrorText.text = string.Empty;
+        }
+        placementErrorRoutine = null;
     }
 
     void CancelPlacement()

@@ -20,6 +20,10 @@ MonoBehaviour:
   foodPerSec: 0
   woodPerSec: 0
   stonePerSec: 1
+  foodPerHarvest: 0
+  woodPerHarvest: 0
+  stonePerHarvest: 1
+  harvestDuration: 2
   populationCapacity: 0
   requiredWorkers: 2
   isDropoff: 0

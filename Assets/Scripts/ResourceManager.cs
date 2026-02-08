@@ -16,6 +16,7 @@ public class ResourceManager : MonoBehaviour
     public int stoneCap = 100;
     
     public event Action OnResourcesChanged;
+    public event Action<int, int, int> OnResourcesAdded;
     
     void Awake()
     {
@@ -38,9 +39,22 @@ public class ResourceManager : MonoBehaviour
     
     public void AddResources(int foodAmount, int woodAmount, int stoneAmount)
     {
+        int foodBefore = food;
+        int woodBefore = wood;
+        int stoneBefore = stone;
+
         food = Mathf.Min(food + foodAmount, foodCap);
         wood = Mathf.Min(wood + woodAmount, woodCap);
         stone = Mathf.Min(stone + stoneAmount, stoneCap);
+
+        int foodAdded = food - foodBefore;
+        int woodAdded = wood - woodBefore;
+        int stoneAdded = stone - stoneBefore;
+
+        if (foodAdded != 0 || woodAdded != 0 || stoneAdded != 0)
+        {
+            OnResourcesAdded?.Invoke(foodAdded, woodAdded, stoneAdded);
+        }
         OnResourcesChanged?.Invoke();
     }
     

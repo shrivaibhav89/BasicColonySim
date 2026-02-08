@@ -157,21 +157,21 @@ public class Villager : MonoBehaviour
                     return;
                 }
 
-                stateTimer = workDuration;
+                stateTimer = GetWorkDuration();
                 SetWorkAnimation();
                 return;
             }
 
             if (storageBuilding == null)
             {
-                stateTimer = workDuration;
+                stateTimer = GetWorkDuration();
                 SetWorkAnimation();
                 return;
             }
 
             if (!HarvestFromWorkBuilding())
             {
-                stateTimer = workDuration;
+                stateTimer = GetWorkDuration();
                 SetWorkAnimation();
                 return;
             }
@@ -205,7 +205,7 @@ public class Villager : MonoBehaviour
             }
             else
             {
-                stateTimer = workDuration;
+                stateTimer = GetWorkDuration();
                 SetWorkAnimation();
             }
         }
@@ -266,7 +266,7 @@ public class Villager : MonoBehaviour
             }
 
             CurrentState = VillagerState.Working;
-            stateTimer = workDuration;
+            stateTimer = GetWorkDuration();
             if (workBuilding != null)
             {
                 workBuilding.NotifyVillagerStartedWork(this);
@@ -389,9 +389,11 @@ public class Villager : MonoBehaviour
             return false;
         }
 
-        int harvestedFood = CalculateHarvestAmount(workBuilding.GetFoodPerSec());
-        int harvestedWood = CalculateHarvestAmount(workBuilding.GetWoodPerSec());
-        int harvestedStone = CalculateHarvestAmount(workBuilding.GetStonePerSec());
+        int perHarvestFood = CalculateHarvestAmount(workBuilding.GetFoodPerHarvest(), workBuilding.GetFoodPerSec());
+        int perHarvestWood = CalculateHarvestAmount(workBuilding.GetWoodPerHarvest(), workBuilding.GetWoodPerSec());
+        int perHarvestStone = CalculateHarvestAmount(workBuilding.GetStonePerHarvest(), workBuilding.GetStonePerSec());
+
+        workBuilding.HarvestShared(perHarvestFood, perHarvestWood, perHarvestStone, out int harvestedFood, out int harvestedWood, out int harvestedStone);
 
         bool collected = false;
 
@@ -422,15 +424,34 @@ public class Villager : MonoBehaviour
         return collected;
     }
 
-    private int CalculateHarvestAmount(int ratePerSecond)
+    private int CalculateHarvestAmount(int perHarvestAmount, int ratePerSecondFallback)
     {
-        if (ratePerSecond <= 0)
+        if (perHarvestAmount > 0)
+        {
+            return perHarvestAmount;
+        }
+
+        if (ratePerSecondFallback <= 0)
         {
             return 0;
         }
 
-        float amount = ratePerSecond * workDuration;
+        float amount = ratePerSecondFallback * GetWorkDuration();
         return Mathf.Max(1, Mathf.CeilToInt(amount));
+    }
+
+    private float GetWorkDuration()
+    {
+        if (workBuilding != null)
+        {
+            float duration = workBuilding.GetHarvestDuration();
+            if (duration > 0f)
+            {
+                return duration;
+            }
+        }
+
+        return workDuration;
     }
 
     private bool IsCargoFull()

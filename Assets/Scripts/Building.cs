@@ -12,6 +12,9 @@ public class Building : MonoBehaviour
     public int assignedWorkers;
     private bool isRegistered;
     [SerializeField]private Building cachedDropoff;
+    private float harvestRemainderFood;
+    private float harvestRemainderWood;
+    private float harvestRemainderStone;
     // Used for temporary runtime override when no BuildingData exists
     private bool runtimeIsDropoff = false;
 
@@ -23,6 +26,10 @@ public class Building : MonoBehaviour
     public int GetFoodPerSec() => buildingData != null ? buildingData.foodPerSec : 0;
     public int GetWoodPerSec() => buildingData != null ? buildingData.woodPerSec : 0;
     public int GetStonePerSec() => buildingData != null ? buildingData.stonePerSec : 0;
+    public int GetFoodPerHarvest() => buildingData != null ? buildingData.foodPerHarvest : 0;
+    public int GetWoodPerHarvest() => buildingData != null ? buildingData.woodPerHarvest : 0;
+    public int GetStonePerHarvest() => buildingData != null ? buildingData.stonePerHarvest : 0;
+    public float GetHarvestDuration() => buildingData != null ? buildingData.harvestDuration : 0f;
     public int GetPopulationCapacity() => buildingData != null ? buildingData.populationCapacity : 0;
     public int GetRequiredWorkers() => buildingData != null ? buildingData.requiredWorkers : 0;
     public bool IsDropoff => buildingData != null ? (buildingData.isDropoff || runtimeIsDropoff) : runtimeIsDropoff;
@@ -61,7 +68,7 @@ public class Building : MonoBehaviour
         if (isStorage)
         {
             runtimeIsDropoff = true;
-            ResourceManager.Instance.IncreaseStorageCap(100);
+            ResourceManager.Instance.IncreaseStorageCap(50);
         }
 
         if (isTownHall)
@@ -116,6 +123,10 @@ public class Building : MonoBehaviour
                 assignedVillagers.Add(villager);
                 assignedWorkers += 1;
                 villager.SetMoveOffset(GetWorkerOffset(assignedWorkers - 1));
+                if (PopulationManager.Instance != null)
+                {
+                    PopulationManager.Instance.NotifyWorkersAssigned(this);
+                }
             }
             return true;
         }
@@ -141,6 +152,27 @@ public class Building : MonoBehaviour
         }
 
         isVillagerWorking = false;
+    }
+
+    public void HarvestShared(int foodPerHarvest, int woodPerHarvest, int stonePerHarvest, out int food, out int wood, out int stone)
+    {
+        int workerCount = Mathf.Max(1, GetRequiredWorkers());
+
+        float foodShare = foodPerHarvest > 0 ? (float)foodPerHarvest / workerCount : 0f;
+        float woodShare = woodPerHarvest > 0 ? (float)woodPerHarvest / workerCount : 0f;
+        float stoneShare = stonePerHarvest > 0 ? (float)stonePerHarvest / workerCount : 0f;
+
+        harvestRemainderFood += foodShare;
+        harvestRemainderWood += woodShare;
+        harvestRemainderStone += stoneShare;
+
+        food = Mathf.FloorToInt(harvestRemainderFood);
+        wood = Mathf.FloorToInt(harvestRemainderWood);
+        stone = Mathf.FloorToInt(harvestRemainderStone);
+
+        harvestRemainderFood -= food;
+        harvestRemainderWood -= wood;
+        harvestRemainderStone -= stone;
     }
 
     bool IsProductionBuilding()
