@@ -111,11 +111,7 @@ public class VillagerManager : MonoBehaviour
             return false;
         }
 
-        string primary = building.BuildingName;
-        if (string.IsNullOrWhiteSpace(primary))
-        {
-            primary = building.gameObject != null ? building.gameObject.name : string.Empty;
-        }
+        string primary = building.buildingData != null ? building.buildingData.buildingName : (building.gameObject != null ? building.gameObject.name : string.Empty);
 
         if (string.IsNullOrWhiteSpace(primary))
         {

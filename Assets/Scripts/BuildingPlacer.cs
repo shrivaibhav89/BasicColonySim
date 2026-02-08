@@ -110,8 +110,8 @@ public class BuildingPlacer : MonoBehaviour
                 lastGridPos = gridPos;
 
                 // Check if valid placement
-                Building buildingData = currentBuildingPrefab.GetComponent<Building>();
-                Vector2Int footprint = buildingData != null ? buildingData.footprintSize : new Vector2Int(1, 1);
+                Building buildingComponent = currentBuildingPrefab.GetComponent<Building>();
+                Vector2Int footprint = buildingComponent != null && buildingComponent.buildingData != null ? buildingComponent.buildingData.footprintSize : new Vector2Int(1, 1);
                 bool isValid = gridSystem.IsAreaValidPlacement(gridPos, footprint) &&
                                PathValidator.HasAdjacentRoadInArea(gridSystem, gridPos, footprint);
 
@@ -137,8 +137,8 @@ public class BuildingPlacer : MonoBehaviour
 
     void TryPlaceBuilding()
     {
-        Building buildingData = currentBuildingPrefab.GetComponent<Building>();
-        Vector2Int footprint = buildingData != null ? buildingData.footprintSize : new Vector2Int(1, 1);
+        Building buildingComponent = currentBuildingPrefab.GetComponent<Building>();
+        Vector2Int footprint = buildingComponent != null && buildingComponent.buildingData != null ? buildingComponent.buildingData.footprintSize : new Vector2Int(1, 1);
 
         if (gridSystem.IsAreaValidPlacement(lastGridPos, footprint) &&
             PathValidator.HasAdjacentRoadInArea(gridSystem, lastGridPos, footprint))
@@ -153,13 +153,16 @@ public class BuildingPlacer : MonoBehaviour
 
 
             // Check resources
-            if (buildingData != null)
+            if (buildingComponent == null || buildingComponent.buildingData == null)
             {
-                if (!ResourceManager.Instance.CanAfford(buildingData.foodCost, buildingData.woodCost, buildingData.stoneCost))
-                {
-                    Debug.Log("Not enough resources!");
-                    return;
-                }
+                Debug.Log("Invalid building data!");
+                return;
+            }
+
+            if (!ResourceManager.Instance.CanAfford(buildingComponent.buildingData.foodCost, buildingComponent.buildingData.woodCost, buildingComponent.buildingData.stoneCost))
+            {
+                Debug.Log("Not enough resources!");
+                return;
             }
 
 
@@ -177,9 +180,9 @@ public class BuildingPlacer : MonoBehaviour
 
             Debug.Log($"Building placed at {lastGridPos}");
             // After Instantiate, spend resources:
-            if (buildingData != null)
+            if (buildingComponent != null && buildingComponent.buildingData != null)
             {
-                ResourceManager.Instance.SpendResources(buildingData.foodCost, buildingData.woodCost, buildingData.stoneCost);
+                ResourceManager.Instance.SpendResources(buildingComponent.buildingData.foodCost, buildingComponent.buildingData.woodCost, buildingComponent.buildingData.stoneCost);
             }
             // Don't cancel - can place multiple buildings
             // If you want to cancel after each placement, uncomment next line:

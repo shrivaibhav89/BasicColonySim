@@ -121,15 +121,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00a237e31061d2a458779786f419f814, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buildingName: Quary
-  foodCost: 5
-  woodCost: 10
-  stoneCost: 0
-  footprintSize: {x: 3, y: 3}
-  foodPerSec: 0
-  woodPerSec: 0
-  stonePerSec: 1
-  populationCapacity: 0
-  requiredWorkers: 2
+  buildingData: {fileID: 11400000, guid: 9c203af5fa6d9c541bcb3507149b2fca, type: 2}
+  originGridPos: {x: 0, y: 0}
+  hasGridPosition: 0
   assignedWorkers: 0
   isGhost: 0

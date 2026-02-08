@@ -121,15 +121,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00a237e31061d2a458779786f419f814, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buildingName: Wood Cutter
-  foodCost: 5
-  woodCost: 0
-  stoneCost: 5
-  footprintSize: {x: 2, y: 2}
-  foodPerSec: 0
-  woodPerSec: 1
-  stonePerSec: 0
-  populationCapacity: 0
-  requiredWorkers: 1
+  buildingData: {fileID: 11400000, guid: b9a389c6742405f4eb34e693dbd50204, type: 2}
+  originGridPos: {x: 0, y: 0}
+  hasGridPosition: 0
   assignedWorkers: 0
   isGhost: 0

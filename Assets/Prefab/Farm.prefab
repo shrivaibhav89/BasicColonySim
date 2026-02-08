@@ -121,14 +121,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00a237e31061d2a458779786f419f814, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buildingName: Farm
-  foodCost: 10
-  woodCost: 5
-  stoneCost: 0
-  foodPerSec: 1
-  woodPerSec: 0
-  stonePerSec: 0
-  populationCapacity: 0
-  requiredWorkers: 1
+  buildingData: {fileID: 11400000, guid: da637c787ea6ece4faa116561b86ba44, type: 2}
+  originGridPos: {x: 0, y: 0}
+  hasGridPosition: 0
   assignedWorkers: 0
   isGhost: 0

@@ -247,11 +247,48 @@ public class Villager : MonoBehaviour
         Vector2Int start = gridSystem.WorldToGrid(transform.position);
         currentPath = GridPathfinder.FindPath(gridSystem, start, target, true, true);
         pathIndex = 0;
-        if (currentPath.Count > 0)
+        if (currentPath == null || currentPath.Count == 0)
+        {
+            Debug.LogWarning($"Villager '{gameObject.name}' could not find path from {start} to {target}");
+        }
+
+        if (currentPath != null && currentPath.Count > 0)
         {
             Vector3 startPos = gridSystem.GridToWorld(currentPath[0]);
             startPos.y = transform.position.y;
             targetWorldPos = startPos;
+        }
+    }
+
+    [ContextMenu("Log Debug State")]
+    public void LogDebugState()
+    {
+        string pathInfo = currentPath == null ? "null" : currentPath.Count.ToString();
+        Vector2Int gridPos = gridSystem != null ? gridSystem.WorldToGrid(transform.position) : Vector2Int.zero;
+        Debug.Log($"[Villager Debug] {gameObject.name} State={CurrentState} Grid={gridPos} PathCount={pathInfo} PathIndex={pathIndex} HasPending={hasPendingTarget} Pending={pendingTarget} TargetWorld={targetWorldPos} Work={(workBuilding!=null?workBuilding.name:"null")} Storage={(storageBuilding!=null?storageBuilding.name:"null")} StateTimer={stateTimer} Carry=F{carryFood},W{carryWood},S{carryStone}");
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        if (gridSystem == null || currentPath == null) return;
+
+        Gizmos.color = Color.cyan;
+        Vector3 prev = transform.position;
+        for (int i = pathIndex; i < currentPath.Count; i++)
+        {
+            Vector3 wp = gridSystem.GridToWorld(currentPath[i]);
+            wp.y = transform.position.y;
+            Gizmos.DrawLine(prev, wp);
+            Gizmos.DrawSphere(wp, 0.1f);
+            prev = wp;
+        }
+
+        if (hasPendingTarget)
+        {
+            Gizmos.color = Color.yellow;
+            Vector3 p = gridSystem.GridToWorld(pendingTarget);
+            p.y = transform.position.y;
+            Gizmos.DrawWireSphere(p, 0.2f);
         }
     }
 

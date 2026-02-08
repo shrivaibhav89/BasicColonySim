@@ -50,7 +50,8 @@ public class PopulationManager : MonoBehaviour
                 {
                     if (building.RequestVillagerAssignment())
                     {
-                        Debug.Log($"{building.BuildingName} now has {building.assignedWorkers}/{building.GetRequiredWorkers()} workers");
+                        string bname = building.buildingData != null ? building.buildingData.buildingName : (building.gameObject != null ? building.gameObject.name : "");
+                        Debug.Log($"{bname} now has {building.assignedWorkers}/{building.GetRequiredWorkers()} workers");
                     }
                 }
             }
