@@ -14,6 +14,10 @@ public class ResourceManager : MonoBehaviour
     public int foodCap = 100;
     public int woodCap = 100;
     public int stoneCap = 100;
+
+    [Header("Production")]
+    [Range(0f, 1f)]
+    public float productionEfficiency = 1f;
     
     public event Action OnResourcesChanged;
     public event Action<int, int, int> OnResourcesAdded;
@@ -56,6 +60,20 @@ public class ResourceManager : MonoBehaviour
             OnResourcesAdded?.Invoke(foodAdded, woodAdded, stoneAdded);
         }
         OnResourcesChanged?.Invoke();
+    }
+
+    public void AddProductionResources(int foodAmount, int woodAmount, int stoneAmount)
+    {
+        int adjustedFood = Mathf.Max(0, Mathf.RoundToInt(foodAmount * productionEfficiency));
+        int adjustedWood = Mathf.Max(0, Mathf.RoundToInt(woodAmount * productionEfficiency));
+        int adjustedStone = Mathf.Max(0, Mathf.RoundToInt(stoneAmount * productionEfficiency));
+
+        AddResources(adjustedFood, adjustedWood, adjustedStone);
+    }
+
+    public void SetProductionEfficiency(float efficiency)
+    {
+        productionEfficiency = Mathf.Clamp01(efficiency);
     }
     
     public void IncreaseStorageCap(int amount)

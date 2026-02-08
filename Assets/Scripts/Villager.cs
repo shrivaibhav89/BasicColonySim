@@ -229,8 +229,7 @@ public class Villager : MonoBehaviour
     {
         if (currentPath == null || currentPath.Count == 0)
         {
-            CurrentState = VillagerState.Idle;
-            SetIdleAnimation();
+            ResetWorkState("No path available");
             return;
         }
 
@@ -302,6 +301,7 @@ public class Villager : MonoBehaviour
         if (currentPath == null || currentPath.Count == 0)
         {
             Debug.LogWarning($"Villager '{gameObject.name}' could not find path from {start} to {target}");
+            return;
         }
 
         if (currentPath != null && currentPath.Count > 0)
@@ -310,6 +310,23 @@ public class Villager : MonoBehaviour
             startPos.y = transform.position.y;
             targetWorldPos = startPos + new Vector3(moveOffset.x, 0f, moveOffset.z);
         }
+    }
+
+    private void ResetWorkState(string reason)
+    {
+        if (workBuilding != null)
+        {
+            workBuilding.NotifyVillagerStoppedWork(this);
+        }
+
+        workBuilding = null;
+        storageBuilding = null;
+        currentPath.Clear();
+        pathIndex = 0;
+        hasPendingTarget = false;
+        CurrentState = VillagerState.Idle;
+        SetIdleAnimation();
+        Debug.LogWarning($"Villager '{gameObject.name}' reset to idle. Reason: {reason}");
     }
 
     [ContextMenu("Log Debug State")]
@@ -468,7 +485,7 @@ public class Villager : MonoBehaviour
             return;
         }
 
-        ResourceManager.Instance.AddResources(carryFood, carryWood, carryStone);
+        ResourceManager.Instance.AddProductionResources(carryFood, carryWood, carryStone);
         ClearCargo();
     }
 
