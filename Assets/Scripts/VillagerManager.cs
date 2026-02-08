@@ -94,13 +94,13 @@ public class VillagerManager : MonoBehaviour
 
     private Building FindNearestResidentialBuilding(Vector3 fromPosition)
     {
-        return FindNearestBuilding(fromPosition, building => building.populationCapacity > 0);
+        return FindNearestBuilding(fromPosition, building => building.GetPopulationCapacity() > 0);
     }
 
     public Building GetNearestDropoffBuilding(Vector3 fromPosition)
     {
         return FindNearestBuilding(fromPosition, building =>
-            building.isDropoff ||
+            building.IsDropoff ||
             NameLooksLikeDropoff(building));
     }
 
@@ -111,7 +111,7 @@ public class VillagerManager : MonoBehaviour
             return false;
         }
 
-        string primary = building.buildingName;
+        string primary = building.BuildingName;
         if (string.IsNullOrWhiteSpace(primary))
         {
             primary = building.gameObject != null ? building.gameObject.name : string.Empty;
@@ -173,7 +173,7 @@ public class VillagerManager : MonoBehaviour
         }
 
         Vector2Int origin = building.GetGridOriginOrFallback(gridSystem);
-        Vector2Int size = building.footprintSize;
+        Vector2Int size = building.FootprintSize;
 
         Vector2Int bestTile = Vector2Int.zero;
         float bestDistance = float.MaxValue;

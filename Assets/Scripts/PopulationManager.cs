@@ -25,11 +25,11 @@ public class PopulationManager : MonoBehaviour
         allBuildings.Add(building);
         
         // If it's a house, increase max population
-        if (building.populationCapacity > 0)
+        if (building.GetPopulationCapacity() > 0)
         {
-            maxPopulation += building.populationCapacity;
+            maxPopulation += building.GetPopulationCapacity();
             // Instantly add citizens
-            currentPopulation = Mathf.Min(currentPopulation + building.populationCapacity, maxPopulation);
+            currentPopulation = Mathf.Min(currentPopulation + building.GetPopulationCapacity(), maxPopulation);
             OnPopulationChanged?.Invoke();
             
         }
@@ -41,16 +41,16 @@ public class PopulationManager : MonoBehaviour
         // Simple auto-assignment: fill production buildings
         foreach (var building in allBuildings)
         {
-            if (building.requiredWorkers > 0 && building.assignedWorkers < building.requiredWorkers)
+            if (building.GetRequiredWorkers() > 0 && building.assignedWorkers < building.GetRequiredWorkers())
             {
-                int needed = building.requiredWorkers - building.assignedWorkers;
+                int needed = building.GetRequiredWorkers() - building.assignedWorkers;
                 int available = currentPopulation - GetTotalAssignedWorkers();
                 int toAssign = Mathf.Min(needed, available);
                 for (int i = 0; i < toAssign; i++)
                 {
                     if (building.RequestVillagerAssignment())
                     {
-                        Debug.Log($"{building.buildingName} now has {building.assignedWorkers}/{building.requiredWorkers} workers");
+                        Debug.Log($"{building.BuildingName} now has {building.assignedWorkers}/{building.GetRequiredWorkers()} workers");
                     }
                 }
             }

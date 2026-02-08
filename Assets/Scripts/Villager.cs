@@ -300,9 +300,9 @@ public class Villager : MonoBehaviour
             return false;
         }
 
-        int harvestedFood = CalculateHarvestAmount(workBuilding.foodPerSec);
-        int harvestedWood = CalculateHarvestAmount(workBuilding.woodPerSec);
-        int harvestedStone = CalculateHarvestAmount(workBuilding.stonePerSec);
+        int harvestedFood = CalculateHarvestAmount(workBuilding.GetFoodPerSec());
+        int harvestedWood = CalculateHarvestAmount(workBuilding.GetWoodPerSec());
+        int harvestedStone = CalculateHarvestAmount(workBuilding.GetStonePerSec());
 
         bool collected = false;
 

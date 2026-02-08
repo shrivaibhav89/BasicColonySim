@@ -2,26 +2,53 @@ using UnityEngine;
 
 public class Building : MonoBehaviour
 {
-    [Header("Building Info")]
-    public string buildingName;
-    public int foodCost;
-    public int woodCost;
-    public int stoneCost;
+    [Header("Building Data Asset (preferred)")]
+    public BuildingData buildingData;
 
-    [Header("Footprint")]
-    public Vector2Int footprintSize = new Vector2Int(1, 1);
-    public Vector2Int originGridPos;
-    public bool hasGridPosition;
+    [Header("Legacy Fields (fallback only)")]
+    [SerializeField] private string buildingName;
+    [SerializeField] private int foodCost;
+    [SerializeField] private int woodCost;
+    [SerializeField] private int stoneCost;
 
-    [Header("Production (per second)")]
-    public int foodPerSec;
-    public int woodPerSec;
-    public int stonePerSec;
+    [SerializeField] private Vector2Int footprintSize = new Vector2Int(1, 1);
+    [SerializeField] private Vector2Int originGridPos;
+    [SerializeField] private bool hasGridPosition;
 
-    [Header("Population")]
-    public int populationCapacity; // For houses
-    public int requiredWorkers;    // For production buildings
+    [SerializeField] private int foodPerSec;
+    [SerializeField] private int woodPerSec;
+    [SerializeField] private int stonePerSec;
+
+    [SerializeField] private int populationCapacity; // For houses
+    [SerializeField] private int requiredWorkers;    // For production buildings
     public int assignedWorkers;
+
+    // Accessors that prefer the BuildingData asset but fall back to legacy fields
+    public string BuildingName => buildingData != null ? buildingData.buildingName : buildingName;
+    public int FoodCost => buildingData != null ? buildingData.foodCost : foodCost;
+    public int WoodCost => buildingData != null ? buildingData.woodCost : woodCost;
+    public int StoneCost => buildingData != null ? buildingData.stoneCost : stoneCost;
+    public Vector2Int FootprintSize => buildingData != null ? buildingData.footprintSize : footprintSize;
+    public int GetFoodPerSec() => buildingData != null ? buildingData.foodPerSec : foodPerSec;
+    public int GetWoodPerSec() => buildingData != null ? buildingData.woodPerSec : woodPerSec;
+    public int GetStonePerSec() => buildingData != null ? buildingData.stonePerSec : stonePerSec;
+    public int GetPopulationCapacity() => buildingData != null ? buildingData.populationCapacity : populationCapacity;
+    public int GetRequiredWorkers() => buildingData != null ? buildingData.requiredWorkers : requiredWorkers;
+    public bool IsDropoff
+    {
+        get => buildingData != null ? buildingData.isDropoff : isDropoff;
+        set
+        {
+            if (buildingData != null)
+            {
+                buildingData.isDropoff = value;
+            }
+            else
+            {
+                isDropoff = value;
+            }
+        }
+    }
 
     public Villager AssignedVillager { get; private set; }
 
@@ -35,18 +62,17 @@ public class Building : MonoBehaviour
 
     public void RegisterBuildingInPopulationManager()
     {
-
         PopulationManager.Instance.RegisterBuilding(this);
 
-        if (buildingName == "Storage")
+        if (BuildingName == "Storage")
         {
-            isDropoff = true;
+            IsDropoff = true;
             ResourceManager.Instance.IncreaseStorageCap(100);
         }
 
-        if (buildingName == "TownCenter" || buildingName == "Town Center")
+        if (BuildingName == "TownCenter" || BuildingName == "Town Center")
         {
-            isDropoff = true;
+            IsDropoff = true;
         }
     }
 
@@ -115,7 +141,7 @@ public class Building : MonoBehaviour
     bool IsProductionBuilding()
     {
         // A building is a production building if it generates any resources
-        return foodPerSec > 0 || woodPerSec > 0 || stonePerSec > 0;
+        return GetFoodPerSec() > 0 || GetWoodPerSec() > 0 || GetStonePerSec() > 0;
     }
 
     void OnDestroy()
