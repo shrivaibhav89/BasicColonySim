@@ -22,18 +22,18 @@ public class UIManager : MonoBehaviour
         var pm = PopulationManager.Instance;
 
         // Color code resources
-        foodText.text = $"🌾 Food: {rm.food}/{rm.foodCap}";
-        woodText.text = $"🪵 Wood: {rm.wood}/{rm.woodCap}";
-        stoneText.text = $"🪨 Stone: {rm.stone}/{rm.stoneCap}";
-        populationText.text = $"👤 Pop: {pm.currentPopulation}/{pm.maxPopulation}";
+        // foodText.text = $"🌾 Food: {rm.food}/{rm.foodCap}";
+        // woodText.text = $"🪵 Wood: {rm.wood}/{rm.woodCap}";
+        // stoneText.text = $"🪨 Stone: {rm.stone}/{rm.stoneCap}";
+        // populationText.text = $"👤 Pop: {pm.currentPopulation}/{pm.maxPopulation}";
 
         // Warning if near cap
 
 
-        foodText.text = $"Food: {rm.food}/{rm.foodCap}";
-        woodText.text = $"Wood: {rm.wood}/{rm.woodCap}";
-        stoneText.text = $"Stone: {rm.stone}/{rm.stoneCap}";
-        populationText.text = $"Pop: {pm.currentPopulation}/{pm.maxPopulation}";
+        foodText.text = $"{rm.food}/{rm.foodCap}";
+        woodText.text = $"{rm.wood}/{rm.woodCap}";
+        stoneText.text = $"{rm.stone}/{rm.stoneCap}";
+        populationText.text = $"{pm.currentPopulation}/{pm.maxPopulation}";
 
         if (idleVillagersText != null)
         {
