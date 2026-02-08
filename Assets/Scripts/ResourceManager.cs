@@ -6,9 +6,9 @@ public class ResourceManager : MonoBehaviour
     public static ResourceManager Instance;
     
     [Header("Resources")]
-    public int food = 50;
-    public int wood = 50;
-    public int stone = 50;
+    public int food = 20;
+    public int wood = 30;
+    public int stone = 0;
     
     [Header("Storage")]
     public int foodCap = 100;

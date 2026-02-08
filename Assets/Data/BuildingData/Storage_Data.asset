@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Storage_Data
   m_EditorClassIdentifier: 
   buildingName: Storage
-  foodCost: 5
-  woodCost: 5
-  stoneCost: 5
+  foodCost: 10
+  woodCost: 10
+  stoneCost: 10
   footprintSize: {x: 2, y: 2}
   foodPerSec: 0
   woodPerSec: 0

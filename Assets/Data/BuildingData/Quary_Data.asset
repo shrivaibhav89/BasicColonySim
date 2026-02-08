@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Quary_Data
   m_EditorClassIdentifier: 
   buildingName: Quary
-  foodCost: 5
-  woodCost: 10
+  foodCost: 10
+  woodCost: 15
   stoneCost: 0
   footprintSize: {x: 3, y: 3}
   foodPerSec: 0

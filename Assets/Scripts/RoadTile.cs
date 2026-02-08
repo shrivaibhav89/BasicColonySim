@@ -2,5 +2,5 @@ using UnityEngine;
 
 public class RoadTile : GridObject
 {
-    public const int WoodCost = 5;
+    public const int WoodCost = 2;
 }
