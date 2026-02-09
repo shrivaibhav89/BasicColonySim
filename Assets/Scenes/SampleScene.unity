@@ -472,6 +472,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6d4f8a1c2b3e4d5f9a7b8c6d5e4f3a2b, type: 2}
   - {fileID: 11400000, guid: 5efc81525cf02384f8990821f64e3d38, type: 2}
   - {fileID: 11400000, guid: 3ae53d75ef38e704e8f138a33d25dfb0, type: 2}
+  - {fileID: 11400000, guid: a8c4f1b2e3d4c5f6a7b8c9d0e1f2a3b4, type: 2}
+  dayNightManager: {fileID: 0}
   questTitleText: {fileID: 910000013}
   questDescriptionText: {fileID: 910000023}
   questProgressText: {fileID: 910000033}

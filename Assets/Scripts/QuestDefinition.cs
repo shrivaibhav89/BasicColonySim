@@ -5,7 +5,8 @@ public enum QuestType
     BuildSpecificBuilding,
     ReachPopulation,
     CollectResource,
-    AssignWorkers
+    AssignWorkers,
+    SurviveDays
 }
 
 public enum BuildingType

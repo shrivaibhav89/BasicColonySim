@@ -7,6 +7,9 @@ public class QuestManager : MonoBehaviour
     [Header("Quest Chain")]
     public List<QuestData> questChain = new List<QuestData>();
 
+    [Header("References")]
+    public DayNightManager dayNightManager;
+
     [Header("UI")]
     public Text questTitleText;
     public Text questDescriptionText;
@@ -18,6 +21,7 @@ public class QuestManager : MonoBehaviour
     private int buildCount;
     private int resourceCollected;
     private int assignedBuildingsCount;
+    private int daysSurvived;
 
     void Start()
     {
@@ -31,6 +35,16 @@ public class QuestManager : MonoBehaviour
         if (ResourceManager.Instance != null)
         {
             ResourceManager.Instance.OnResourcesAdded += HandleResourcesAdded;
+        }
+
+        if (dayNightManager == null)
+        {
+            dayNightManager = DayNightManager.Instance;
+        }
+
+        if (dayNightManager != null)
+        {
+            dayNightManager.OnDayEnd.AddListener(HandleDayEnded);
         }
 
         ActivateNextQuest();
@@ -49,6 +63,11 @@ public class QuestManager : MonoBehaviour
         {
             ResourceManager.Instance.OnResourcesAdded -= HandleResourcesAdded;
         }
+
+        if (dayNightManager != null)
+        {
+            dayNightManager.OnDayEnd.RemoveListener(HandleDayEnded);
+        }
     }
 
     private void ActivateNextQuest()
@@ -57,6 +76,7 @@ public class QuestManager : MonoBehaviour
         buildCount = 0;
         resourceCollected = 0;
         assignedBuildingsCount = 0;
+        daysSurvived = 0;
 
         if (currentQuestIndex < 0 || currentQuestIndex >= questChain.Count)
         {
@@ -66,6 +86,26 @@ public class QuestManager : MonoBehaviour
         }
 
         currentQuest = questChain[currentQuestIndex];
+        if (currentQuest != null && currentQuest.questType == QuestType.SurviveDays && dayNightManager != null)
+        {
+            daysSurvived = Mathf.Max(0, dayNightManager.currentDay - 1);
+        }
+        UpdateQuestUI();
+        CheckQuestCompletion();
+    }
+
+    private void HandleDayEnded()
+    {
+        if (currentQuest == null || currentQuest.questType != QuestType.SurviveDays)
+        {
+            return;
+        }
+
+        if (dayNightManager != null)
+        {
+            daysSurvived = Mathf.Max(0, dayNightManager.currentDay);
+        }
+
         UpdateQuestUI();
         CheckQuestCompletion();
     }
@@ -167,6 +207,9 @@ public class QuestManager : MonoBehaviour
             case QuestType.AssignWorkers:
                 complete = assignedBuildingsCount >= Mathf.Max(1, currentQuest.targetCount);
                 break;
+            case QuestType.SurviveDays:
+                complete = daysSurvived >= Mathf.Max(1, currentQuest.targetCount);
+                break;
         }
 
         if (complete)
@@ -230,6 +273,8 @@ public class QuestManager : MonoBehaviour
                 return $"{resourceCollected}/{currentQuest.targetCount}";
             case QuestType.AssignWorkers:
                 return $"{assignedBuildingsCount}/{Mathf.Max(1, currentQuest.targetCount)}";
+            case QuestType.SurviveDays:
+                return $"{daysSurvived}/{Mathf.Max(1, currentQuest.targetCount)}";
             default:
                 return string.Empty;
         }

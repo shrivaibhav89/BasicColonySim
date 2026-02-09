@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ece85205db873945a5aedf9af8dcbf9, type: 3}
-  m_Name: Quest_10_ThrivingColony
+  m_Name: Quest_11_Survive15Days
   m_EditorClassIdentifier: 
-  questID: 10
-  questTitle: Thriving Colony
-  questDescription: Achieve victory by reaching 100 population!
-  questType: 1
+  questID: 11
+  questTitle: Survive 15 Days
+  questDescription: Keep your colony alive for 15 days.
+  questType: 4
   targetBuildingType: 0
-  targetCount: 100
+  targetCount: 15
   targetResourceType: 0
   foodReward: 0
   woodReward: 0
   stoneReward: 0
-  isVictoryQuest: 0
+  isVictoryQuest: 1
