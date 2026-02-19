@@ -1,0 +1,4 @@
+JobType,DefaultPriority,Notes
+Farmer,1,Defaults in PopulationManager.EnsureDefaultPriorities
+Woodcutter,1,Defaults in PopulationManager.EnsureDefaultPriorities
+Quarry,1,Defaults in PopulationManager.EnsureDefaultPriorities

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public class GridSystem : MonoBehaviour
 {
+    public static GridSystem Instance { get; private set; }
+
     [Header("Grid Settings")]
     public int gridWidth = 10;
     public int gridHeight = 10;
@@ -14,6 +16,16 @@ public class GridSystem : MonoBehaviour
     
     void Awake()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         // Initialize grid
         occupiedTiles = new bool[gridWidth, gridHeight];
     }

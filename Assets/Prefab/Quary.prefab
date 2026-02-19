@@ -13,7 +13,8 @@ GameObject:
   - component: {fileID: 6857451190036984778}
   - component: {fileID: 1942204035874421788}
   - component: {fileID: -6533287909436573818}
-  m_Layer: 0
+  - component: {fileID: 6092072594240963997}
+  m_Layer: 6
   m_Name: Quary
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -125,4 +126,22 @@ MonoBehaviour:
   originGridPos: {x: 0, y: 0}
   hasGridPosition: 0
   assignedWorkers: 0
+  cachedDropoff: {fileID: 0}
+  productionEnabled: 1
+  tintWhenDisabled: 1
+  disabledTint: {r: 0.6, g: 0.6, b: 0.6, a: 1}
   isGhost: 0
+--- !u!114 &6092072594240963997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5170142242643097061}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48b2a923d4d8e0f479b5dae65c1a7c8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  currentHealth: 0

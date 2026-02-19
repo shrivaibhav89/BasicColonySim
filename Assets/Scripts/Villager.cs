@@ -9,7 +9,8 @@ public class Villager : MonoBehaviour
         MovingToWork,
         Working,
         MovingToStorage,
-        Depositing
+        Depositing,
+        ReturningHome
     }
 
     [Header("Movement")]
@@ -101,10 +102,25 @@ public class Villager : MonoBehaviour
 
     void Update()
     {
+        if (GameManager.Instance != null && GameManager.Instance.IsDefeated())
+            return;
+
+        if (workBuilding != null && !workBuilding.IsProductionEnabled)
+        {
+            ResetWorkState("Production disabled");
+            return;
+        }
+
+        if (CurrentState == VillagerState.Idle && workBuilding == null)
+        {
+            TryReturnHome();
+        }
+
         switch (CurrentState)
         {
             case VillagerState.MovingToWork:
             case VillagerState.MovingToStorage:
+            case VillagerState.ReturningHome:
                 MoveAlongPath();
                 break;
             case VillagerState.Working:
@@ -286,6 +302,11 @@ public class Villager : MonoBehaviour
             DepositCargo();
             SetIdleAnimation();
         }
+        else if (CurrentState == VillagerState.ReturningHome)
+        {
+            CurrentState = VillagerState.Idle;
+            SetIdleAnimation();
+        }
         else
         {
             CurrentState = VillagerState.Idle;
@@ -293,9 +314,66 @@ public class Villager : MonoBehaviour
         }
     }
 
+    private void TryReturnHome()
+    {
+        if (gridSystem == null)
+        {
+            return;
+        }
+
+        if (homeBuilding == null && manager != null)
+        {
+            homeBuilding = manager.GetNearestResidentialBuilding(transform.position);
+            if (homeBuilding == null)
+            {
+                homeBuilding = manager.GetNearestDropoffBuilding(transform.position);
+            }
+        }
+
+        if (homeBuilding == null)
+        {
+            return;
+        }
+
+        Vector2Int target = GetHomeStandTile();
+        Vector2Int current = gridSystem.WorldToGrid(transform.position);
+        if (current == target)
+        {
+            return;
+        }
+
+        SetPathTo(target);
+        CurrentState = VillagerState.ReturningHome;
+        SetMovingAnimation();
+    }
+
+    private Vector2Int GetHomeStandTile()
+    {
+        if (homeBuilding == null || gridSystem == null)
+        {
+            return Vector2Int.zero;
+        }
+
+        if (manager != null && manager.TryGetNearestRoadTile(homeBuilding, out Vector2Int roadTile))
+        {
+            return roadTile;
+        }
+
+        return homeBuilding.GetGridOriginOrFallback(gridSystem);
+    }
+
     private void SetPathTo(Vector2Int target)
     {
         Vector2Int start = gridSystem.WorldToGrid(transform.position);
+        if (start == target)
+        {
+            currentPath = new List<Vector2Int> { target };
+            pathIndex = 0;
+            Vector3 startPos = gridSystem.GridToWorld(target);
+            startPos.y = transform.position.y;
+            targetWorldPos = startPos + new Vector3(moveOffset.x, 0f, moveOffset.z);
+            return;
+        }
         currentPath = GridPathfinder.FindPath(gridSystem, start, target, true, true);
         pathIndex = 0;
         if (currentPath == null || currentPath.Count == 0)
@@ -317,6 +395,7 @@ public class Villager : MonoBehaviour
         if (workBuilding != null)
         {
             workBuilding.NotifyVillagerStoppedWork(this);
+            workBuilding.UnassignVillager(this);
         }
 
         workBuilding = null;
@@ -327,6 +406,11 @@ public class Villager : MonoBehaviour
         CurrentState = VillagerState.Idle;
         SetIdleAnimation();
         Debug.LogWarning($"Villager '{gameObject.name}' reset to idle. Reason: {reason}");
+    }
+
+    public void ForceIdle(string reason)
+    {
+        ResetWorkState(reason);
     }
 
     [ContextMenu("Log Debug State")]

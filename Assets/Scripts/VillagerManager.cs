@@ -219,6 +219,11 @@ public class VillagerManager : MonoBehaviour
         return FindNearestBuilding(fromPosition, building => building.GetPopulationCapacity() > 0);
     }
 
+    public Building GetNearestResidentialBuilding(Vector3 fromPosition)
+    {
+        return FindNearestResidentialBuilding(fromPosition);
+    }
+
     public Building GetNearestDropoffBuilding(Vector3 fromPosition)
     {
         return FindNearestBuilding(fromPosition, building =>

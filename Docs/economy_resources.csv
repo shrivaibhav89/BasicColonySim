@@ -1,0 +1,9 @@
+Category,Name,Value,Notes
+Initial,Food,20,ResourceManager.food
+Initial,Wood,30,ResourceManager.wood
+Initial,Stone,0,ResourceManager.stone
+StorageCap,FoodCap,100,ResourceManager.foodCap
+StorageCap,WoodCap,100,ResourceManager.woodCap
+StorageCap,StoneCap,100,ResourceManager.stoneCap
+Production,Efficiency,1.0,ResourceManager.productionEfficiency (0-1 multiplier)
+Storage,StorageBuildingCapIncrease,50,Building.RegisterBuildingInPopulationManager when name contains 'storage'

@@ -64,6 +64,9 @@ public class ResourceManager : MonoBehaviour
 
     public void AddProductionResources(int foodAmount, int woodAmount, int stoneAmount)
     {
+        if (GameManager.Instance != null && GameManager.Instance.IsDefeated())
+            return;
+
         int adjustedFood = Mathf.Max(0, Mathf.RoundToInt(foodAmount * productionEfficiency));
         int adjustedWood = Mathf.Max(0, Mathf.RoundToInt(woodAmount * productionEfficiency));
         int adjustedStone = Mathf.Max(0, Mathf.RoundToInt(stoneAmount * productionEfficiency));

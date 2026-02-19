@@ -77,6 +77,10 @@ public class FoodConsumptionManager : MonoBehaviour
             int fed = Mathf.Max(0, population - lastHungryVillagers);
             float efficiency = population > 0 ? (float)fed / population : 1f;
             efficiency = Mathf.Clamp01(efficiency);
+            if (population > 0)
+            {
+                efficiency = Mathf.Max(starvationEfficiency, efficiency);
+            }
             ResourceManager.Instance.SetProductionEfficiency(efficiency);
         }
 

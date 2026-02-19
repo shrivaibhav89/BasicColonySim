@@ -1,0 +1,5 @@
+Stat,Value,Notes
+InitialPopulation,5,PopulationManager.currentPopulation default
+InitialMaxPopulation,5,PopulationManager.maxPopulation default
+HousePopulationCapacity,5,House_Data.asset populationCapacity
+TownHallPopulationCapacity,5,TownHall_Data.asset populationCapacity

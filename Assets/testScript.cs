@@ -1,4 +1,9 @@
+using System;
+using System.Collections;
+using Unity.Collections;
+using UnityEditor.Rendering;
 using UnityEngine;
+using UnityEngine.Networking;
 
 public class testScript : MonoBehaviour
 {
@@ -13,4 +18,24 @@ public class testScript : MonoBehaviour
     {
         
     }
+
+    public async void LoadDataFromAPI(string apiUrl)
+    {
+        using (UnityWebRequest request = UnityWebRequest.Get(apiUrl))
+        {
+            await request.SendWebRequest();
+            if(request.result == UnityWebRequest.Result.Success)
+            {
+                string jsondata = request.downloadHandler.text;
+                Debug.Log("Data received: " + jsondata);
+            }
+            else
+            {
+                Debug.LogError("Error fetching data: " + request.error);
+            }
+        }
+        
+    }
+
+   
 }

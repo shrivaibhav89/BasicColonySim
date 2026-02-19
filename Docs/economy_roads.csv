@@ -1,0 +1,2 @@
+Item,WoodCost,RoadHeight,PlacementNotes
+RoadTile,2,0,RoadManager uses RoadTile.WoodCost and requires valid grid placement

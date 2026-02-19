@@ -25,6 +25,14 @@ public class DayNightManager : MonoBehaviour
     public bool isPaused;
     public bool pauseWhenTimeScaleZero = true;
 
+    public void OnEnable()
+    {
+         OnDayStart.AddListener(OnDayStartHandler);
+    }
+    public void OnDisable()
+    {
+        OnDayStart.RemoveListener(OnDayStartHandler);
+    }
     void Awake()
     {
         if (Instance == null)
@@ -40,8 +48,23 @@ public class DayNightManager : MonoBehaviour
 
     void Start()
     {
+       
         UpdateUI();
         OnDayStart?.Invoke();
+        // Notify EnemyWaveManager of the current day at game start
+        if (GameManager.Instance != null && GameManager.Instance.enemyWaveManager != null)
+        {
+            GameManager.Instance.enemyWaveManager.SetDay(currentDay);
+        }
+    }
+
+    private void OnDayStartHandler()
+    {
+        // Notify EnemyWaveManager of the new day
+        if (GameManager.Instance != null && GameManager.Instance.enemyWaveManager != null)
+        {
+            GameManager.Instance.enemyWaveManager.SetDay(currentDay);
+        }
     }
 
     void Update()
@@ -59,6 +82,8 @@ public class DayNightManager : MonoBehaviour
             currentDay++;
             dayTimer = 0f;
             OnDayStart?.Invoke();
+            // Notify EnemyWaveManager of the new day
+          
         }
 
         UpdateUI();

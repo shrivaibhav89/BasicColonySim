@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Farm_Data
   m_EditorClassIdentifier: 
   buildingName: Farm
+  buildingImage: {fileID: 0}
   foodCost: 0
   woodCost: 10
   stoneCost: 0
@@ -23,7 +24,8 @@ MonoBehaviour:
   foodPerHarvest: 1
   woodPerHarvest: 0
   stonePerHarvest: 0
-  harvestDuration: 1
+  harvestDuration: 3
   populationCapacity: 0
   requiredWorkers: 1
+  jobType: 1
   isDropoff: 0

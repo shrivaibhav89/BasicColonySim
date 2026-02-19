@@ -1,0 +1,6 @@
+Stat,Value,Notes
+MoveSpeed,2,Units per second (world units)
+GroundSpeedMultiplier,0.5,Multiplier when not on road
+WorkDurationSeconds,2,Base work cycle duration
+DepositDurationSeconds,1,Time to deposit cargo
+CarryCapacityPerResource,5,Max per resource type

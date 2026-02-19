@@ -13,6 +13,35 @@ public class UIManager : MonoBehaviour
     {
         ResourceManager.Instance.OnResourcesChanged += UpdateUI;
         PopulationManager.Instance.OnPopulationChanged += UpdateUI;
+        PopulationManager.Instance.OnWorkersAssigned += HandleWorkersAssigned;
+        PopulationManager.Instance.OnBuildingRegistered += HandleBuildingRegistered;
+        PopulationManager.Instance.OnJobPrioritiesChanged += UpdateUI;
+        UpdateUI();
+    }
+
+    void OnDestroy()
+    {
+        if (ResourceManager.Instance != null)
+        {
+            ResourceManager.Instance.OnResourcesChanged -= UpdateUI;
+        }
+
+        if (PopulationManager.Instance != null)
+        {
+            PopulationManager.Instance.OnPopulationChanged -= UpdateUI;
+            PopulationManager.Instance.OnWorkersAssigned -= HandleWorkersAssigned;
+            PopulationManager.Instance.OnBuildingRegistered -= HandleBuildingRegistered;
+            PopulationManager.Instance.OnJobPrioritiesChanged -= UpdateUI;
+        }
+    }
+
+    private void HandleWorkersAssigned(Building building)
+    {
+        UpdateUI();
+    }
+
+    private void HandleBuildingRegistered(Building building)
+    {
         UpdateUI();
     }
 

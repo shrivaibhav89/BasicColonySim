@@ -26,4 +26,5 @@ MonoBehaviour:
   harvestDuration: 1
   populationCapacity: 5
   requiredWorkers: 0
+  jobType: 0
   isDropoff: 0

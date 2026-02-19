@@ -18,6 +18,11 @@ public class Building : MonoBehaviour
     // Used for temporary runtime override when no BuildingData exists
     private bool runtimeIsDropoff = false;
 
+    [Header("Production")]
+    [SerializeField] private bool productionEnabled = true;
+    [SerializeField] private bool tintWhenDisabled = true;
+    [SerializeField] private Color disabledTint = new Color(0.6f, 0.6f, 0.6f, 1f);
+
     // Accessors that prefer the BuildingData asset but fall back to legacy fields
     // Accessors read directly from BuildingData. BuildingData is expected to be present for all
     // runtime instances to avoid per-instance duplication of static data.
@@ -33,9 +38,15 @@ public class Building : MonoBehaviour
     public int GetPopulationCapacity() => buildingData != null ? buildingData.populationCapacity : 0;
     public int GetRequiredWorkers() => buildingData != null ? buildingData.requiredWorkers : 0;
     public bool IsDropoff => buildingData != null ? (buildingData.isDropoff || runtimeIsDropoff) : runtimeIsDropoff;
+    public JobType GetJobType() => buildingData != null ? buildingData.jobType : JobType.None;
+    public bool IsProductionEnabled => productionEnabled;
 
     public Villager AssignedVillager => assignedVillagers.Count > 0 ? assignedVillagers[0] : null;
     private readonly List<Villager> assignedVillagers = new List<Villager>();
+
+    private bool materialsCached;
+    private Renderer[] cachedRenderers;
+    private readonly Dictionary<Material, MaterialColorState> materialColorStates = new Dictionary<Material, MaterialColorState>();
 
     // Dropoff state is provided by `BuildingData`; a runtime override exists when no data asset is present.
 
@@ -43,6 +54,12 @@ public class Building : MonoBehaviour
     public bool isGhost;
 
     private bool isVillagerWorking;
+
+    void Awake()
+    {
+        CacheMaterials();
+        ApplyProductionVisuals();
+    }
 
     void Start()
     {
@@ -154,6 +171,165 @@ public class Building : MonoBehaviour
         isVillagerWorking = false;
     }
 
+    public void UnassignVillager(Villager villager)
+    {
+        if (villager == null)
+        {
+            return;
+        }
+
+        if (assignedVillagers.Remove(villager))
+        {
+            assignedWorkers = Mathf.Max(0, assignedWorkers - 1);
+            isVillagerWorking = false;
+        }
+    }
+
+    public void SetProductionEnabled(bool enabled)
+    {
+        if (productionEnabled == enabled)
+        {
+            return;
+        }
+
+        productionEnabled = enabled;
+        if (!productionEnabled)
+        {
+            ReleaseAllWorkers("Production disabled");
+        }
+
+        ApplyProductionVisuals();
+
+        if (PopulationManager.Instance != null)
+        {
+            PopulationManager.Instance.RefreshWorkerAssignments();
+        }
+    }
+
+    private void ReleaseAllWorkers(string reason)
+    {
+        while (assignedVillagers.Count > 0)
+        {
+            int index = assignedVillagers.Count - 1;
+            Villager villager = assignedVillagers[index];
+            assignedVillagers.RemoveAt(index);
+            assignedWorkers = Mathf.Max(0, assignedWorkers - 1);
+            if (villager != null)
+            {
+                villager.ForceIdle(reason);
+            }
+        }
+    }
+
+    private void CacheMaterials()
+    {
+        if (materialsCached)
+        {
+            return;
+        }
+
+        cachedRenderers = GetComponentsInChildren<Renderer>(true);
+        foreach (Renderer renderer in cachedRenderers)
+        {
+            if (renderer == null)
+            {
+                continue;
+            }
+
+            Material[] materials = renderer.materials;
+            foreach (Material material in materials)
+            {
+                if (material == null || materialColorStates.ContainsKey(material))
+                {
+                    continue;
+                }
+
+                MaterialColorState state = new MaterialColorState
+                {
+                    hasBaseColor = material.HasProperty("_BaseColor"),
+                    hasColor = material.HasProperty("_Color")
+                };
+
+                if (state.hasBaseColor)
+                {
+                    state.baseColor = material.GetColor("_BaseColor");
+                }
+
+                if (state.hasColor)
+                {
+                    state.color = material.GetColor("_Color");
+                }
+
+                materialColorStates.Add(material, state);
+            }
+        }
+
+        materialsCached = true;
+    }
+
+    private void ApplyProductionVisuals()
+    {
+        if (!tintWhenDisabled)
+        {
+            return;
+        }
+
+        if (!materialsCached)
+        {
+            CacheMaterials();
+        }
+
+        foreach (KeyValuePair<Material, MaterialColorState> kvp in materialColorStates)
+        {
+            Material material = kvp.Key;
+            MaterialColorState state = kvp.Value;
+
+            if (productionEnabled)
+            {
+                if (state.hasBaseColor)
+                {
+                    material.SetColor("_BaseColor", state.baseColor);
+                }
+                if (state.hasColor)
+                {
+                    material.SetColor("_Color", state.color);
+                }
+            }
+            else
+            {
+                if (state.hasBaseColor)
+                {
+                    material.SetColor("_BaseColor", disabledTint);
+                }
+                if (state.hasColor)
+                {
+                    material.SetColor("_Color", disabledTint);
+                }
+            }
+        }
+    }
+
+    public bool TryReleaseWorker(out Villager villager, string reason = "Reassigned")
+    {
+        villager = null;
+        if (assignedVillagers.Count == 0)
+        {
+            return false;
+        }
+
+        int index = assignedVillagers.Count - 1;
+        villager = assignedVillagers[index];
+        assignedVillagers.RemoveAt(index);
+        assignedWorkers = Mathf.Max(0, assignedWorkers - 1);
+
+        if (villager != null)
+        {
+            villager.ForceIdle(reason);
+        }
+
+        return true;
+    }
+
     public void HarvestShared(int foodPerHarvest, int woodPerHarvest, int stonePerHarvest, out int food, out int wood, out int stone)
     {
         int workerCount = Mathf.Max(1, GetRequiredWorkers());
@@ -193,11 +369,57 @@ public class Building : MonoBehaviour
         }
     }
 
+    public void DestroyBuilding()
+    {
+        // Release all assigned workers
+        while (assignedVillagers.Count > 0)
+        {
+            int index = assignedVillagers.Count - 1;
+            Villager villager = assignedVillagers[index];
+            assignedVillagers.RemoveAt(index);
+            assignedWorkers = Mathf.Max(0, assignedWorkers - 1);
+            if (villager != null)
+            {
+                villager.ForceIdle("Building destroyed");
+            }
+        }
+
+        // Unmark grid tiles
+        if (hasGridPosition && GridSystem.Instance != null)
+        {
+            Vector2Int footprint = FootprintSize;
+            GridSystem.Instance.SetAreaOccupied(originGridPos, footprint, false);
+        }
+
+        // Unregister from PopulationManager
+        if (PopulationManager.Instance != null)
+        {
+            PopulationManager.Instance.UnregisterBuilding(this);
+        }
+
+        // Destroy the gameobject (no resource recovery)
+        Destroy(gameObject);
+    }
+
+    [ContextMenu("Destroy Building (No Refund)")]
+    private void DestroyBuildingContextMenu()
+    {
+        DestroyBuilding();
+    }
+
     private Vector3 GetWorkerOffset(int index)
     {
         float radius = 0.25f;
         float angle = (index % 6) * 60f;
         float radians = angle * Mathf.Deg2Rad;
         return new Vector3(Mathf.Cos(radians) * radius, 0f, Mathf.Sin(radians) * radius);
+    }
+
+    private struct MaterialColorState
+    {
+        public bool hasBaseColor;
+        public Color baseColor;
+        public bool hasColor;
+        public Color color;
     }
 }

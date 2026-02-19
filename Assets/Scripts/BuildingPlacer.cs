@@ -8,6 +8,7 @@ public class BuildingPlacer : MonoBehaviour
     public GridSystem gridSystem;
     public Camera mainCamera;
     public RoadManager roadManager;
+    public DemolishManager demolishManager;
 
     [Header("Placement Settings")]
     public GameObject currentBuildingPrefab;
@@ -67,6 +68,11 @@ public class BuildingPlacer : MonoBehaviour
 
     public void StartPlacement(GameObject buildingPrefab)
     {
+        if (demolishManager != null)
+        {
+            demolishManager.SetDemolishMode(false);
+        }
+
         StopRoadPlacement();
         currentBuildingPrefab = buildingPrefab;
         isPlacing = true;
@@ -264,12 +270,24 @@ public class BuildingPlacer : MonoBehaviour
 
     public void StartRoadPlacement()
     {
+        if (demolishManager != null)
+        {
+            demolishManager.SetDemolishMode(false);
+        }
+
         CancelBuildingPlacement(false);
         placementMode = PlacementMode.Road;
         if (roadManager != null)
         {
             roadManager.SetRoadPlacementActive(true);
         }
+    }
+
+    public void CancelAllPlacement()
+    {
+        CancelBuildingPlacement(false);
+        StopRoadPlacement();
+        placementMode = PlacementMode.None;
     }
 
     public void ToggleRoadPlacement()

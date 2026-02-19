@@ -5,6 +5,7 @@ public class BuildingData : ScriptableObject
 {
     [Header("Building Info")]
     public string buildingName;
+    public Sprite buildingImage;
     public int foodCost;
     public int woodCost;
     public int stoneCost;
@@ -28,6 +29,9 @@ public class BuildingData : ScriptableObject
     [Header("Population")]
     public int populationCapacity; // For houses
     public int requiredWorkers;    // For production buildings
+
+    [Header("Jobs")]
+    public JobType jobType;
 
     [Header("Dropoff")]
     public bool isDropoff;
