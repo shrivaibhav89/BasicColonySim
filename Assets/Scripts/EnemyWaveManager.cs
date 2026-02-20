@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 public class EnemyWaveManager : MonoBehaviour
 {
+    [Header("UI Reference")]
+    public SurvivalTimerUI survivalTimerUI;
+    public float survivalDuration = 120f; // 2 minutes
     [Header("Enemy Wave Settings")]
     public GameObject enemyPrefab;
     public float spawnRadius = 30f;
@@ -57,6 +60,12 @@ public class EnemyWaveManager : MonoBehaviour
                 Debug.LogWarning("EnemyWaveManager: TownHall object not found when spawning enemies!");
         }
 
+        // Start survival timer and send villagers home
+        if (survivalTimerUI != null)
+            survivalTimerUI.StartTimer(survivalDuration);
+        if (VillagerManager.Instance != null)
+            VillagerManager.Instance.SendAllVillagersHome();
+
         Debug.Log($"Enemy Wave Triggered! Day: {currentDay}, Enemies: {enemiesPerWave}");
         for (int i = 0; i < enemiesPerWave; i++)
         {
@@ -69,6 +78,20 @@ public class EnemyWaveManager : MonoBehaviour
             }
             yield return new WaitForSeconds(0.5f); // Stagger spawns
         }
+
+        // Wait for survival timer to finish
+        float timer = survivalDuration;
+        while (timer > 0)
+        {
+            yield return null;
+            timer -= Time.deltaTime;
+        }
+
+        // Wave finished: return villagers to work
+        if (VillagerManager.Instance != null)
+            VillagerManager.Instance.ReturnAllVillagersToWork();
+        if (survivalTimerUI != null)
+            survivalTimerUI.StopTimer();
     }
 
     Vector3 GetRandomSpawnPosition()

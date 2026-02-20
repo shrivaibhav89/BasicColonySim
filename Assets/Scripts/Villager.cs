@@ -99,7 +99,25 @@ public class Villager : MonoBehaviour
         CurrentState = VillagerState.MovingToWork;
         SetMovingAnimation();
     }
+    public void GoInsideHome()
+    {
+        CurrentState = VillagerState.ReturningHome;
+        // Optionally: move to home position, play animation, etc.
+        if (homeBuilding != null)
+            transform.position = homeBuilding.transform.position;
+        if (animator != null)
+            animator.SetBool(idleBool, true);
+    }
 
+    public void ReturnToWork()
+    {
+        CurrentState = VillagerState.MovingToWork;
+        // Optionally: move to work position, play animation, etc.
+        if (workBuilding != null)
+            transform.position = workBuilding.transform.position;
+        if (animator != null)
+            animator.SetBool(idleBool, false);
+    }
     void Update()
     {
         if (GameManager.Instance != null && GameManager.Instance.IsDefeated())
@@ -418,7 +436,7 @@ public class Villager : MonoBehaviour
     {
         string pathInfo = currentPath == null ? "null" : currentPath.Count.ToString();
         Vector2Int gridPos = gridSystem != null ? gridSystem.WorldToGrid(transform.position) : Vector2Int.zero;
-        Debug.Log($"[Villager Debug] {gameObject.name} State={CurrentState} Grid={gridPos} PathCount={pathInfo} PathIndex={pathIndex} HasPending={hasPendingTarget} Pending={pendingTarget} TargetWorld={targetWorldPos} Work={(workBuilding!=null?workBuilding.name:"null")} Storage={(storageBuilding!=null?storageBuilding.name:"null")} StateTimer={stateTimer} Carry=F{carryFood},W{carryWood},S{carryStone}");
+        Debug.Log($"[Villager Debug] {gameObject.name} State={CurrentState} Grid={gridPos} PathCount={pathInfo} PathIndex={pathIndex} HasPending={hasPendingTarget} Pending={pendingTarget} TargetWorld={targetWorldPos} Work={(workBuilding != null ? workBuilding.name : "null")} Storage={(storageBuilding != null ? storageBuilding.name : "null")} StateTimer={stateTimer} Carry=F{carryFood},W{carryWood},S{carryStone}");
     }
 
     void OnDrawGizmosSelected()

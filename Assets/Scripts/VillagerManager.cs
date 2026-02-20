@@ -36,7 +36,23 @@ public class VillagerManager : MonoBehaviour
             StartCoroutine(SpawnInitialVillagersNextFrame());
         }
     }
+    public void SendAllVillagersHome()
+    {
+        foreach (var villager in activeVillagers)
+        {
+            if (villager != null)
+                villager.GoInsideHome();
+        }
+    }
 
+    public void ReturnAllVillagersToWork()
+    {
+        foreach (var villager in activeVillagers)
+        {
+            if (villager != null)
+                villager.ReturnToWork();
+        }
+    }
     private IEnumerator SpawnInitialVillagersNextFrame()
     {
         yield return null;
@@ -251,7 +267,7 @@ public class VillagerManager : MonoBehaviour
         }
 
         string lower = primary.ToLowerInvariant();
-        return lower.Contains("storage") || lower.Contains("townhall") || lower.Contains("center") ;
+        return lower.Contains("storage") || lower.Contains("townhall") || lower.Contains("center");
     }
 
     private Building FindNearestBuilding(Vector3 fromPosition, System.Func<Building, bool> predicate)
