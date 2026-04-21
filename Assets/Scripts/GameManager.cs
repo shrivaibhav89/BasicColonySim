@@ -41,4 +41,13 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
     }
+
+    public void RestoreDefeatState(bool defeated)
+    {
+        isDefeated = defeated;
+        if (defeatPopup != null)
+        {
+            defeatPopup.SetActive(defeated);
+        }
+    }
 }

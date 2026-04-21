@@ -347,4 +347,58 @@ public class VillagerManager : MonoBehaviour
         roadTile = bestTile;
         return found;
     }
+
+    public List<Villager> GetActiveVillagers()
+    {
+        List<Villager> villagers = new List<Villager>();
+        for (int i = 0; i < activeVillagers.Count; i++)
+        {
+            Villager villager = activeVillagers[i];
+            if (villager != null)
+            {
+                villagers.Add(villager);
+            }
+        }
+
+        return villagers;
+    }
+
+    public void DespawnAllVillagers()
+    {
+        for (int i = activeVillagers.Count - 1; i >= 0; i--)
+        {
+            Villager villager = activeVillagers[i];
+            activeVillagers.RemoveAt(i);
+            if (villager == null)
+            {
+                continue;
+            }
+
+            villager.ForceIdle("SaveLoad reset");
+            villager.gameObject.SetActive(false);
+            if (!pool.Contains(villager))
+            {
+                pool.Enqueue(villager);
+            }
+        }
+    }
+
+    public void EnsureVillagerCount(int desiredCount)
+    {
+        int desired = Mathf.Max(0, desiredCount);
+        for (int i = activeVillagers.Count; i < desired; i++)
+        {
+            Villager spawned = GetVillagerFromPool();
+            if (spawned == null)
+            {
+                break;
+            }
+
+            spawned.gameObject.SetActive(true);
+            spawned.Initialize(this, gridSystem);
+            Vector3 spawnPos = GetInitialSpawnPosition(i);
+            spawned.SetIdleAt(spawnPos);
+            activeVillagers.Add(spawned);
+        }
+    }
 }

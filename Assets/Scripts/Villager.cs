@@ -84,6 +84,11 @@ public class Villager : MonoBehaviour
         SetIdleAnimation();
     }
 
+    public void Teleport(Vector3 worldPosition)
+    {
+        transform.position = worldPosition;
+    }
+
     public void AssignWork(Building home, Building work, Building storage)
     {
         homeBuilding = home;

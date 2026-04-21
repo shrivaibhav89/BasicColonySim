@@ -1,7 +1,3 @@
-using System;
-using System.Collections;
-using Unity.Collections;
-using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.Networking;
 

@@ -8,6 +8,7 @@ public class WinCondition : MonoBehaviour
     public Text winText;
     
     private bool won = false;
+    public bool IsWon => won;
     
     void Start()
     {
@@ -33,6 +34,20 @@ public class WinCondition : MonoBehaviour
 
         won = true;
         ShowWin();
+    }
+
+    public void RestoreWinState(bool hasWon)
+    {
+        won = hasWon;
+        if (winPanel != null)
+        {
+            winPanel.SetActive(hasWon);
+        }
+
+        if (hasWon && winText != null)
+        {
+            winText.text = $"ðŸŽ‰ VICTORY! ðŸŽ‰\n\nYou reached {targetPopulation} population!\n\nTime: {Time.timeSinceLevelLoad:F0}s";
+        }
     }
     
     void ShowWin()

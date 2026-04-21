@@ -99,6 +99,13 @@ public class DayNightManager : MonoBehaviour
         return dayTimer;
     }
 
+    public void SetDayState(int day, float timer)
+    {
+        currentDay = Mathf.Max(1, day);
+        dayTimer = Mathf.Clamp(timer, 0f, dayDuration);
+        UpdateUI();
+    }
+
     private void UpdateUI()
     {
         if (dayCounterText != null)

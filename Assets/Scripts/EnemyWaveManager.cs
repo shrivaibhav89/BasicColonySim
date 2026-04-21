@@ -2,6 +2,13 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
+[System.Serializable]
+public class EnemyWaveRuntimeState
+{
+    public int currentDay;
+    public bool waveStarted;
+}
+
 public class EnemyWaveManager : MonoBehaviour
 {
     [Header("UI Reference")]
@@ -18,6 +25,32 @@ public class EnemyWaveManager : MonoBehaviour
     private float waveTimer = 0f;
     [SerializeField] private int currentDay = 0;
     [SerializeField] private bool waveStarted = false;
+
+    public EnemyWaveRuntimeState CaptureRuntimeState()
+    {
+        return new EnemyWaveRuntimeState
+        {
+            currentDay = currentDay,
+            waveStarted = waveStarted
+        };
+    }
+
+    public void RestoreRuntimeState(EnemyWaveRuntimeState state)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        StopAllCoroutines();
+        if (survivalTimerUI != null)
+        {
+            survivalTimerUI.StopTimer();
+        }
+
+        currentDay = Mathf.Max(0, state.currentDay);
+        waveStarted = state.waveStarted;
+    }
 
     void Start()
     {

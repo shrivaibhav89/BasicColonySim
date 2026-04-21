@@ -127,4 +127,10 @@ public class GridSystem : MonoBehaviour
     {
         return roadTiles.Contains(gridPos);
     }
+
+    public void ClearAllOccupancy()
+    {
+        occupiedTiles = new bool[gridWidth, gridHeight];
+        roadTiles.Clear();
+    }
 }

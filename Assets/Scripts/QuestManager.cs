@@ -2,6 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+[System.Serializable]
+public class QuestRuntimeState
+{
+    public int currentQuestIndex;
+    public int buildCount;
+    public int resourceCollected;
+    public int assignedBuildingsCount;
+    public int daysSurvived;
+}
+
 public class QuestManager : MonoBehaviour
 {
     [Header("Quest Chain")]
@@ -22,6 +32,38 @@ public class QuestManager : MonoBehaviour
     private int resourceCollected;
     private int assignedBuildingsCount;
     private int daysSurvived;
+
+    public QuestRuntimeState CaptureRuntimeState()
+    {
+        return new QuestRuntimeState
+        {
+            currentQuestIndex = currentQuestIndex,
+            buildCount = buildCount,
+            resourceCollected = resourceCollected,
+            assignedBuildingsCount = assignedBuildingsCount,
+            daysSurvived = daysSurvived
+        };
+    }
+
+    public void RestoreRuntimeState(QuestRuntimeState state)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        currentQuestIndex = Mathf.Clamp(state.currentQuestIndex, -1, questChain.Count - 1);
+        currentQuest = (currentQuestIndex >= 0 && currentQuestIndex < questChain.Count)
+            ? questChain[currentQuestIndex]
+            : null;
+
+        buildCount = Mathf.Max(0, state.buildCount);
+        resourceCollected = Mathf.Max(0, state.resourceCollected);
+        assignedBuildingsCount = Mathf.Max(0, state.assignedBuildingsCount);
+        daysSurvived = Mathf.Max(0, state.daysSurvived);
+
+        UpdateQuestUI();
+    }
 
     void Start()
     {

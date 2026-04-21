@@ -82,6 +82,35 @@ public class PopulationManager : MonoBehaviour
         AssignWorkers();
     }
 
+    public void SetPopulationState(int current, int max)
+    {
+        maxPopulation = Mathf.Max(0, max);
+        currentPopulation = Mathf.Clamp(current, 0, maxPopulation);
+        OnPopulationChanged?.Invoke();
+    }
+
+    public List<JobPriority> GetJobPrioritiesSnapshot()
+    {
+        EnsureDefaultPriorities();
+        List<JobPriority> snapshot = new List<JobPriority>();
+        for (int i = 0; i < jobPriorities.Count; i++)
+        {
+            JobPriority entry = jobPriorities[i];
+            if (entry == null)
+            {
+                continue;
+            }
+
+            snapshot.Add(new JobPriority
+            {
+                jobType = entry.jobType,
+                priority = entry.priority
+            });
+        }
+
+        return snapshot;
+    }
+
     public int GetJobPriorityValue(JobType jobType)
     {
         return GetJobPriority(jobType);

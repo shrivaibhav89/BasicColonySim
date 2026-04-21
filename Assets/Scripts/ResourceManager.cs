@@ -86,4 +86,18 @@ public class ResourceManager : MonoBehaviour
         stoneCap += amount;
         OnResourcesChanged?.Invoke();
     }
+
+    public void SetResourceState(int newFood, int newWood, int newStone, int newFoodCap, int newWoodCap, int newStoneCap, float efficiency)
+    {
+        foodCap = Mathf.Max(0, newFoodCap);
+        woodCap = Mathf.Max(0, newWoodCap);
+        stoneCap = Mathf.Max(0, newStoneCap);
+
+        food = Mathf.Clamp(newFood, 0, foodCap);
+        wood = Mathf.Clamp(newWood, 0, woodCap);
+        stone = Mathf.Clamp(newStone, 0, stoneCap);
+        productionEfficiency = Mathf.Clamp01(efficiency);
+
+        OnResourcesChanged?.Invoke();
+    }
 }
