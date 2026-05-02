@@ -27,6 +27,11 @@ public class GameManager : MonoBehaviour
     {
         if (isDefeated) return;
         isDefeated = true;
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfx(SoundId.Defeat);
+        }
+
         if (defeatPopup != null)
             defeatPopup.SetActive(true);
         Time.timeScale = 0f; // Pause the game

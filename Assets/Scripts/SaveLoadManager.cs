@@ -10,11 +10,17 @@ using UnityEngine.SceneManagement;
 [DefaultExecutionOrder(-2000)]
 public class SaveLoadManager : MonoBehaviour
 {
+    public delegate IEnumerator CloudLoadProviderDelegate(Action<ColonySaveData> onLoaded, Action<string> onError);
+    public delegate IEnumerator CloudVillageLoadProviderDelegate(string villageKey, Action<ColonySaveData> onLoaded, Action<string> onError);
+
     private const string SaveFileName = "colony_save.dat";
     private const string EncryptionSeed = "BasicColonySim_Save_Key_v1";
     private const int SaveVersion = 1;
 
     private static SaveLoadManager instance;
+    public static event Action<ColonySaveData, string> SaveCompleted;
+    public static CloudLoadProviderDelegate CloudLoadProvider;
+    public static CloudVillageLoadProviderDelegate CloudVillageLoadProvider;
 
     private ColonySaveData pendingLoadData;
     private bool isApplyingLoad;
@@ -65,6 +71,7 @@ public class SaveLoadManager : MonoBehaviour
         {
             LoadGame();
         }
+
     }
 
     private string GetSavePath()
@@ -80,7 +87,28 @@ public class SaveLoadManager : MonoBehaviour
             string json = JsonUtility.ToJson(data);
             byte[] encrypted = Encrypt(json);
             File.WriteAllBytes(GetSavePath(), encrypted);
+
+            string encryptedBase64 = Convert.ToBase64String(encrypted);
+            try
+            {
+                SaveCompleted?.Invoke(data, encryptedBase64);
+            }
+            catch (Exception callbackException)
+            {
+                Debug.LogError("Save callback failed: " + callbackException.Message);
+            }
+
             Debug.Log("Game saved (encrypted) at: " + GetSavePath());
+
+            string shareVillageKey = NakamaSaveSyncManager.CurrentVillageKey;
+            if (IsValidVillageKey(shareVillageKey))
+            {
+                Debug.Log("Village key: " + shareVillageKey + " (share this key to let others load your village).");
+            }
+            else
+            {
+                Debug.Log("Village key is not ready yet. Wait a moment and save again.");
+            }
         }
         catch (Exception ex)
         {
@@ -95,34 +123,142 @@ public class SaveLoadManager : MonoBehaviour
             return;
         }
 
-        string path = GetSavePath();
-        if (!File.Exists(path))
+        if (CloudLoadProvider == null)
         {
-            Debug.LogWarning("No save file found at: " + path);
+            Debug.LogWarning("Cloud load failed: no cloud provider available.");
             return;
         }
 
+        StartCoroutine(LoadGameFromCloudCoroutine());
+    }
+
+    public static bool RequestLoadVillageByKey(string villageKey)
+    {
+        if (instance == null)
+        {
+            Debug.LogWarning("Village load failed: SaveLoadManager is not ready.");
+            return false;
+        }
+
+        return instance.LoadVillageByKey(villageKey);
+    }
+
+    private bool LoadVillageByKey(string villageKey)
+    {
+        if (isApplyingLoad)
+        {
+            Debug.LogWarning("Village load skipped: another load operation is already running.");
+            return false;
+        }
+
+        if (CloudVillageLoadProvider == null)
+        {
+            Debug.LogWarning("Village load failed: no cloud village provider available.");
+            return false;
+        }
+
+        string normalized = NormalizeVillageKey(villageKey);
+        if (!IsValidVillageKey(normalized))
+        {
+            Debug.LogWarning("Village load failed: key must be 6 chars (A-Z, 0-9).");
+            return false;
+        }
+
+        StartCoroutine(LoadVillageFromCloudCoroutine(normalized));
+        return true;
+    }
+
+    private IEnumerator LoadGameFromCloudCoroutine()
+    {
+        if (CloudLoadProvider == null)
+        {
+            yield break;
+        }
+
+        ColonySaveData loadedData = null;
+        string loadError = null;
+
+        Action<ColonySaveData> onLoaded = data => loadedData = data;
+        Action<string> onError = error => loadError = error;
+
+        IEnumerator cloudRoutine = null;
         try
         {
-            byte[] encrypted = File.ReadAllBytes(path);
-            string json = Decrypt(encrypted);
-            ColonySaveData data = JsonUtility.FromJson<ColonySaveData>(json);
-            if (data == null)
-            {
-                Debug.LogError("Load failed: Save file data is invalid.");
-                return;
-            }
-
-            pendingLoadData = data;
-            isApplyingLoad = true;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            cloudRoutine = CloudLoadProvider(onLoaded, onError);
         }
         catch (Exception ex)
         {
-            Debug.LogError("Load failed: " + ex.Message);
-            pendingLoadData = null;
-            isApplyingLoad = false;
+            loadError = ex.Message;
         }
+
+        if (cloudRoutine != null)
+        {
+            yield return StartCoroutine(cloudRoutine);
+        }
+
+        if (!string.IsNullOrEmpty(loadError))
+        {
+            Debug.LogWarning("Cloud load failed: " + loadError);
+            yield break;
+        }
+
+        if (loadedData == null)
+        {
+            Debug.LogWarning("Cloud load failed: no save data returned.");
+            yield break;
+        }
+
+        BeginApplyLoadedData(loadedData);
+    }
+
+    private IEnumerator LoadVillageFromCloudCoroutine(string villageKey)
+    {
+        if (CloudVillageLoadProvider == null)
+        {
+            yield break;
+        }
+
+        ColonySaveData loadedData = null;
+        string loadError = null;
+
+        Action<ColonySaveData> onLoaded = data => loadedData = data;
+        Action<string> onError = error => loadError = error;
+
+        IEnumerator cloudRoutine = null;
+        try
+        {
+            cloudRoutine = CloudVillageLoadProvider(villageKey, onLoaded, onError);
+        }
+        catch (Exception ex)
+        {
+            loadError = ex.Message;
+        }
+
+        if (cloudRoutine != null)
+        {
+            yield return StartCoroutine(cloudRoutine);
+        }
+
+        if (!string.IsNullOrEmpty(loadError))
+        {
+            Debug.LogWarning("Village load failed: " + loadError);
+            yield break;
+        }
+
+        if (loadedData == null)
+        {
+            Debug.LogWarning("Village load failed: no save data returned.");
+            yield break;
+        }
+
+        BeginApplyLoadedData(loadedData);
+    }
+
+    private void BeginApplyLoadedData(ColonySaveData data)
+    {
+        pendingLoadData = data;
+        isApplyingLoad = true;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -715,6 +851,86 @@ public class SaveLoadManager : MonoBehaviour
         using (SHA256 sha = SHA256.Create())
         {
             return sha.ComputeHash(Encoding.UTF8.GetBytes(seed));
+        }
+    }
+
+    public static bool IsValidVillageKey(string villageKey)
+    {
+        if (string.IsNullOrEmpty(villageKey) || villageKey.Length != 6)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < villageKey.Length; i++)
+        {
+            char c = villageKey[i];
+            bool isDigit = c >= '0' && c <= '9';
+            bool isUpper = c >= 'A' && c <= 'Z';
+            if (!isDigit && !isUpper)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static string NormalizeVillageKey(string villageKey)
+    {
+        if (string.IsNullOrEmpty(villageKey))
+        {
+            return string.Empty;
+        }
+
+        string upper = villageKey.ToUpperInvariant();
+        StringBuilder builder = new StringBuilder(6);
+        for (int i = 0; i < upper.Length; i++)
+        {
+            char c = upper[i];
+            bool isDigit = c >= '0' && c <= '9';
+            bool isUpper = c >= 'A' && c <= 'Z';
+            if (isDigit || isUpper)
+            {
+                builder.Append(c);
+            }
+
+            if (builder.Length >= 6)
+            {
+                break;
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    public static bool TryDecodeSaveDataFromEncryptedBase64(string encryptedBase64, out ColonySaveData data, out string error)
+    {
+        data = null;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(encryptedBase64))
+        {
+            error = "Encrypted payload is empty.";
+            return false;
+        }
+
+        try
+        {
+            byte[] encrypted = Convert.FromBase64String(encryptedBase64);
+            string json = Decrypt(encrypted);
+            data = JsonUtility.FromJson<ColonySaveData>(json);
+            if (data == null)
+            {
+                error = "Decoded save payload is invalid.";
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
         }
     }
 }

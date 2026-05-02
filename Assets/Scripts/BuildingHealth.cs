@@ -16,6 +16,11 @@ public class BuildingHealth : MonoBehaviour
     public void TakeDamage(int amount)
     {
         currentHealth -= amount;
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfxAt(SoundId.BuildingDamaged, transform.position);
+        }
+
         if (currentHealth <= 0)
         {
             currentHealth = 0;

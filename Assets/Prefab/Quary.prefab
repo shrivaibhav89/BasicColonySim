@@ -129,7 +129,8 @@ MonoBehaviour:
   cachedDropoff: {fileID: 0}
   productionEnabled: 1
   tintWhenDisabled: 1
-  disabledTint: {r: 0.6, g: 0.6, b: 0.6, a: 1}
+  disabledTint: {r: 0.45, g: 0.45, b: 0.45, a: 0.45}
+  disabledAlpha: 0.45
   isGhost: 0
 --- !u!114 &6092072594240963997
 MonoBehaviour:

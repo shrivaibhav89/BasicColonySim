@@ -21,7 +21,9 @@ public class Building : MonoBehaviour
     [Header("Production")]
     [SerializeField] private bool productionEnabled = true;
     [SerializeField] private bool tintWhenDisabled = true;
-    [SerializeField] private Color disabledTint = new Color(0.6f, 0.6f, 0.6f, 1f);
+    [SerializeField] private Color disabledTint = new Color(0.45f, 0.45f, 0.45f, 0.45f);
+    [Range(0f, 1f)]
+    [SerializeField] private float disabledAlpha = 0.45f;
 
     // Accessors that prefer the BuildingData asset but fall back to legacy fields
     // Accessors read directly from BuildingData. BuildingData is expected to be present for all
@@ -247,7 +249,13 @@ public class Building : MonoBehaviour
                 MaterialColorState state = new MaterialColorState
                 {
                     hasBaseColor = material.HasProperty("_BaseColor"),
-                    hasColor = material.HasProperty("_Color")
+                    hasColor = material.HasProperty("_Color"),
+                    hasSurface = material.HasProperty("_Surface"),
+                    hasBlend = material.HasProperty("_Blend"),
+                    hasSrcBlend = material.HasProperty("_SrcBlend"),
+                    hasDstBlend = material.HasProperty("_DstBlend"),
+                    hasZWrite = material.HasProperty("_ZWrite"),
+                    renderQueue = material.renderQueue
                 };
 
                 if (state.hasBaseColor)
@@ -258,6 +266,31 @@ public class Building : MonoBehaviour
                 if (state.hasColor)
                 {
                     state.color = material.GetColor("_Color");
+                }
+
+                if (state.hasSurface)
+                {
+                    state.surface = material.GetFloat("_Surface");
+                }
+
+                if (state.hasBlend)
+                {
+                    state.blend = material.GetFloat("_Blend");
+                }
+
+                if (state.hasSrcBlend)
+                {
+                    state.srcBlend = material.GetFloat("_SrcBlend");
+                }
+
+                if (state.hasDstBlend)
+                {
+                    state.dstBlend = material.GetFloat("_DstBlend");
+                }
+
+                if (state.hasZWrite)
+                {
+                    state.zWrite = material.GetFloat("_ZWrite");
                 }
 
                 materialColorStates.Add(material, state);
@@ -294,19 +327,119 @@ public class Building : MonoBehaviour
                 {
                     material.SetColor("_Color", state.color);
                 }
+
+                RestoreMaterialSurface(material, state);
             }
             else
             {
+                Color tint = GetDisabledTint();
                 if (state.hasBaseColor)
                 {
-                    material.SetColor("_BaseColor", disabledTint);
+                    material.SetColor("_BaseColor", tint);
                 }
                 if (state.hasColor)
                 {
-                    material.SetColor("_Color", disabledTint);
+                    material.SetColor("_Color", tint);
                 }
+
+                ApplyTransparentMaterialSurface(material);
             }
         }
+    }
+
+    private Color GetDisabledTint()
+    {
+        Color tint = disabledTint;
+        tint.a = disabledAlpha <= 0.01f ? 0.45f : disabledAlpha;
+        return tint;
+    }
+
+    private void ApplyTransparentMaterialSurface(Material material)
+    {
+        material.SetOverrideTag("RenderType", "Transparent");
+        material.SetOverrideTag("Queue", "Transparent");
+
+        if (material.HasProperty("_Surface"))
+        {
+            material.SetFloat("_Surface", 1f);
+        }
+
+        if (material.HasProperty("_AlphaClip"))
+        {
+            material.SetFloat("_AlphaClip", 0f);
+        }
+
+        if (material.HasProperty("_Blend"))
+        {
+            material.SetFloat("_Blend", 0f);
+        }
+
+        if (material.HasProperty("_Mode"))
+        {
+            material.SetFloat("_Mode", 3f);
+        }
+
+        if (material.HasProperty("_SrcBlend"))
+        {
+            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        }
+
+        if (material.HasProperty("_DstBlend"))
+        {
+            material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        }
+
+        if (material.HasProperty("_ZWrite"))
+        {
+            material.SetFloat("_ZWrite", 0f);
+        }
+
+        material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+        material.DisableKeyword("_ALPHATEST_ON");
+        material.EnableKeyword("_ALPHABLEND_ON");
+        material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+    }
+
+    private void RestoreMaterialSurface(Material material, MaterialColorState state)
+    {
+        if (state.hasSurface)
+        {
+            material.SetFloat("_Surface", state.surface);
+        }
+
+        if (state.hasBlend)
+        {
+            material.SetFloat("_Blend", state.blend);
+        }
+
+        if (state.hasSrcBlend)
+        {
+            material.SetFloat("_SrcBlend", state.srcBlend);
+        }
+
+        if (state.hasDstBlend)
+        {
+            material.SetFloat("_DstBlend", state.dstBlend);
+        }
+
+        if (state.hasZWrite)
+        {
+            material.SetFloat("_ZWrite", state.zWrite);
+        }
+
+        if (state.hasSurface && Mathf.Approximately(state.surface, 1f))
+        {
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        }
+        else
+        {
+            material.DisableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        }
+
+        material.DisableKeyword("_ALPHABLEND_ON");
+
+        material.renderQueue = state.renderQueue;
     }
 
     public bool TryReleaseWorker(out Villager villager, string reason = "Reassigned")
@@ -421,5 +554,16 @@ public class Building : MonoBehaviour
         public Color baseColor;
         public bool hasColor;
         public Color color;
+        public bool hasSurface;
+        public float surface;
+        public bool hasBlend;
+        public float blend;
+        public bool hasSrcBlend;
+        public float srcBlend;
+        public bool hasDstBlend;
+        public float dstBlend;
+        public bool hasZWrite;
+        public float zWrite;
+        public int renderQueue;
     }
 }

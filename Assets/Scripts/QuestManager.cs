@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,6 +15,8 @@ public class QuestRuntimeState
 
 public class QuestManager : MonoBehaviour
 {
+    public event Action OnQuestActivated;
+
     [Header("Quest Chain")]
     public List<QuestData> questChain = new List<QuestData>();
 
@@ -133,6 +136,7 @@ public class QuestManager : MonoBehaviour
             daysSurvived = Mathf.Max(0, dayNightManager.currentDay - 1);
         }
         UpdateQuestUI();
+        OnQuestActivated?.Invoke();
         CheckQuestCompletion();
     }
 

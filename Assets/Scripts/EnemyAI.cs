@@ -11,11 +11,21 @@ public class EnemyAI : MonoBehaviour
     public float attackCooldown = 1f;
     public int attackDamage = 10;
     private float lastAttackTime = 0f;
+    public Vector3 Velocity { get; private set; }
+    private Vector3 lastPosition;
+
+    void Start()
+    {
+        lastPosition = transform.position;
+    }
 
     void Update()
     {
         if (GameManager.Instance != null && GameManager.Instance.IsDefeated())
             return;
+
+        Velocity = Time.deltaTime > 0f ? (transform.position - lastPosition) / Time.deltaTime : Vector3.zero;
+        lastPosition = transform.position;
 
         if (target != null)
         {

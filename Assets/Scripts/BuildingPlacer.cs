@@ -200,6 +200,11 @@ public class BuildingPlacer : MonoBehaviour
             gridSystem.SetAreaOccupied(lastGridPos, footprint, true);
 
             Debug.Log($"Building placed at {lastGridPos}");
+            if (SoundManager.Instance != null)
+            {
+                SoundManager.Instance.PlaySfxAt(SoundId.BuildingPlaced, worldPos);
+            }
+
             // After Instantiate, spend resources:
             if (buildingComponent != null && buildingComponent.buildingData != null)
             {
@@ -217,6 +222,11 @@ public class BuildingPlacer : MonoBehaviour
 
     private void ShowPlacementError(string message)
     {
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySfx(SoundId.BuildingPlacementDenied);
+        }
+
         if (placementErrorText == null)
         {
             return;
