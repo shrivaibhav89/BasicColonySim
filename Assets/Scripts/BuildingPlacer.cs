@@ -16,6 +16,13 @@ public class BuildingPlacer : MonoBehaviour
     public Material invalidPlacementMaterial;
     public float ghostHeight = 0.5f;
     public KeyCode roadModeHotkey = KeyCode.R;
+    public KeyCode rotateBuildingHotkey = KeyCode.R;
+    public float rotationStepDegrees = 90f;
+    [Header("Quarry Placement")]
+    public float quarryStoneSearchRadius = 7f;
+    public LayerMask quarryStoneLayerMask = ~0;
+    public string quarryStoneTag = "Stone";
+    public string[] quarryStoneNameHints = new[] { "stone", "rock", "ore", "boulder" };
 
     [Header("Placement UI")]
     public Text placementErrorText;
@@ -26,6 +33,8 @@ public class BuildingPlacer : MonoBehaviour
     private Vector2Int lastGridPos;
     private MeshRenderer[] ghostRenderers;
     private Coroutine placementErrorRoutine;
+    private int placementRotationQuarterTurns;
+    private bool ghostNeedsRefresh;
 
     private enum PlacementMode
     {
@@ -38,13 +47,13 @@ public class BuildingPlacer : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(roadModeHotkey))
-        {
-            ToggleRoadPlacement();
-        }
-
         if (placementMode == PlacementMode.Building && isPlacing && currentBuildingPrefab != null)
         {
+            if (Input.GetKeyDown(rotateBuildingHotkey))
+            {
+                RotateBuildingClockwise();
+            }
+
             UpdateGhostPosition();
 
             if (Input.GetMouseButtonDown(0)) // Left click
@@ -64,6 +73,11 @@ public class BuildingPlacer : MonoBehaviour
                 StopRoadPlacement();
             }
         }
+
+        if (placementMode != PlacementMode.Building && Input.GetKeyDown(roadModeHotkey))
+        {
+            ToggleRoadPlacement();
+        }
     }
 
     public void StartPlacement(GameObject buildingPrefab)
@@ -77,6 +91,8 @@ public class BuildingPlacer : MonoBehaviour
         currentBuildingPrefab = buildingPrefab;
         isPlacing = true;
         placementMode = PlacementMode.Building;
+        placementRotationQuarterTurns = 0;
+        ghostNeedsRefresh = true;
 
         // Create ghost preview
         if (ghostObject != null)
@@ -84,6 +100,7 @@ public class BuildingPlacer : MonoBehaviour
 
         ghostObject = Instantiate(currentBuildingPrefab);
         ghostObject.name = "Ghost_" + buildingPrefab.name;
+        ghostObject.transform.rotation = GetPlacementRotation();
 
         Building ghostBuilding = ghostObject.GetComponent<Building>();
         if (ghostBuilding != null)
@@ -118,15 +135,21 @@ public class BuildingPlacer : MonoBehaviour
             Vector2Int gridPos = gridSystem.WorldToGrid(hit.point);
 
             // Only update if grid position changed
-            if (gridPos != lastGridPos)
+            if (gridPos != lastGridPos || ghostNeedsRefresh)
             {
                 lastGridPos = gridPos;
+                ghostNeedsRefresh = false;
 
                 // Check if valid placement
                 Building buildingComponent = currentBuildingPrefab.GetComponent<Building>();
-                Vector2Int footprint = buildingComponent != null && buildingComponent.buildingData != null ? buildingComponent.buildingData.footprintSize : new Vector2Int(1, 1);
+                Vector2Int footprint = GetCurrentFootprint(buildingComponent);
                 bool isValid = gridSystem.IsAreaValidPlacement(gridPos, footprint) &&
                                PathValidator.HasAdjacentRoadInArea(gridSystem, gridPos, footprint);
+
+                if (isValid && !MeetsSpecialPlacementRules(buildingComponent, gridPos, footprint))
+                {
+                    isValid = false;
+                }
 
                 if (isValid && buildingComponent != null && buildingComponent.buildingData != null && ResourceManager.Instance != null)
                 {
@@ -145,6 +168,7 @@ public class BuildingPlacer : MonoBehaviour
                 worldPos += footprintOffset;
                 worldPos.y = ghostHeight;
                 ghostObject.transform.position = worldPos;
+                ghostObject.transform.rotation = GetPlacementRotation();
 
                 // Update ghost material (green = valid, red = invalid)
                 Material materialToUse = isValid ? validPlacementMaterial : invalidPlacementMaterial;
@@ -159,11 +183,17 @@ public class BuildingPlacer : MonoBehaviour
     void TryPlaceBuilding()
     {
         Building buildingComponent = currentBuildingPrefab.GetComponent<Building>();
-        Vector2Int footprint = buildingComponent != null && buildingComponent.buildingData != null ? buildingComponent.buildingData.footprintSize : new Vector2Int(1, 1);
+        Vector2Int footprint = GetCurrentFootprint(buildingComponent);
 
         if (gridSystem.IsAreaValidPlacement(lastGridPos, footprint) &&
             PathValidator.HasAdjacentRoadInArea(gridSystem, lastGridPos, footprint))
         {
+            if (!MeetsSpecialPlacementRules(buildingComponent, lastGridPos, footprint))
+            {
+                ShowPlacementError("Quarry must be placed near stone.");
+                return;
+            }
+
             // Place actual building
             Vector3 worldPos = gridSystem.GridToWorld(lastGridPos);
             Vector3 footprintOffset = new Vector3(
@@ -187,7 +217,7 @@ public class BuildingPlacer : MonoBehaviour
             }
 
 
-            GameObject building = Instantiate(currentBuildingPrefab, worldPos, Quaternion.identity);
+            GameObject building = Instantiate(currentBuildingPrefab, worldPos, GetPlacementRotation());
             building.name = currentBuildingPrefab.name;
             Building placedBuilding = building.GetComponent<Building>();
             if (placedBuilding != null)
@@ -264,6 +294,8 @@ public class BuildingPlacer : MonoBehaviour
     private void CancelBuildingPlacement(bool logMessage)
     {
         isPlacing = false;
+        placementRotationQuarterTurns = 0;
+        ghostNeedsRefresh = false;
 
         if (ghostObject != null)
         {
@@ -321,5 +353,110 @@ public class BuildingPlacer : MonoBehaviour
         {
             placementMode = PlacementMode.None;
         }
+    }
+
+    private bool MeetsSpecialPlacementRules(Building buildingComponent, Vector2Int gridPos, Vector2Int footprint)
+    {
+        if (!IsQuarryBuilding(buildingComponent))
+        {
+            return true;
+        }
+
+        Vector3 worldPos = gridSystem.GridToWorld(gridPos);
+        Vector3 footprintOffset = new Vector3(
+            (footprint.x - 1) * gridSystem.cellSize * 0.5f,
+            0f,
+            (footprint.y - 1) * gridSystem.cellSize * 0.5f);
+        worldPos += footprintOffset;
+        worldPos.y = 0f;
+        return HasNearbyStoneNode(worldPos);
+    }
+
+    private bool IsQuarryBuilding(Building buildingComponent)
+    {
+        if (buildingComponent == null)
+        {
+            return false;
+        }
+
+        if (buildingComponent.GetJobType() == JobType.Quarry)
+        {
+            return true;
+        }
+
+        string dataName = buildingComponent.buildingData != null ? buildingComponent.buildingData.buildingName : string.Empty;
+        string goName = buildingComponent.gameObject != null ? buildingComponent.gameObject.name : string.Empty;
+        string merged = (dataName + " " + goName).ToLowerInvariant();
+        return merged.Contains("quarry") || merged.Contains("quary") || merged.Contains("mine");
+    }
+
+    private bool HasNearbyStoneNode(Vector3 center)
+    {
+        float radius = Mathf.Max(0.5f, quarryStoneSearchRadius);
+        Collider[] hits = Physics.OverlapSphere(center + Vector3.up * 0.5f, radius, quarryStoneLayerMask, QueryTriggerInteraction.Collide);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (LooksLikeStoneNode(hits[i]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool LooksLikeStoneNode(Collider col)
+    {
+        if (col == null)
+        {
+            return false;
+        }
+
+        Transform t = col.transform;
+        if (!string.IsNullOrEmpty(quarryStoneTag) && t.CompareTag(quarryStoneTag))
+        {
+            return true;
+        }
+
+        string nameLower = t.name.ToLowerInvariant();
+        for (int i = 0; i < quarryStoneNameHints.Length; i++)
+        {
+            string hint = quarryStoneNameHints[i];
+            if (!string.IsNullOrWhiteSpace(hint) && nameLower.Contains(hint.ToLowerInvariant()))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void RotateBuildingClockwise()
+    {
+        placementRotationQuarterTurns = (placementRotationQuarterTurns + 1) % 4;
+        ghostNeedsRefresh = true;
+        if (ghostObject != null)
+        {
+            ghostObject.transform.rotation = GetPlacementRotation();
+        }
+    }
+
+    private Quaternion GetPlacementRotation()
+    {
+        return Quaternion.Euler(0f, placementRotationQuarterTurns * rotationStepDegrees, 0f);
+    }
+
+    private Vector2Int GetCurrentFootprint(Building buildingComponent)
+    {
+        Vector2Int footprint = buildingComponent != null && buildingComponent.buildingData != null
+            ? buildingComponent.buildingData.footprintSize
+            : new Vector2Int(1, 1);
+
+        if ((placementRotationQuarterTurns & 1) == 1)
+        {
+            return new Vector2Int(footprint.y, footprint.x);
+        }
+
+        return footprint;
     }
 }

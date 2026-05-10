@@ -176,6 +176,16 @@ public class BuildingInfoUI : MonoBehaviour
             sb.AppendLine($"Harvest Time: {harvestDuration:0.##}s");
         }
 
+        TownHallArmyTrainer trainer = building.GetComponent<TownHallArmyTrainer>();
+        if (trainer != null)
+        {
+            sb.AppendLine();
+            sb.AppendLine("Train Army Unit: Press T");
+            sb.AppendLine($"Cost: Food {trainer.foodCost}, Wood {trainer.woodCost}, Stone {trainer.stoneCost}");
+            sb.AppendLine($"Train Time: {trainer.trainingDuration:0.##}s");
+            sb.AppendLine($"Queue: {trainer.queuedUnits}");
+        }
+
         return sb.ToString().TrimEnd();
     }
 

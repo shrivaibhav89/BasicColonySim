@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c82349f815ce8249ab6819af935e17b, type: 3}
+  m_Name: Tower_Data
+  m_EditorClassIdentifier: 
+  buildingName: Tower
+  buildingImage: {fileID: 0}
+  foodCost: 0
+  woodCost: 20
+  stoneCost: 10
+  footprintSize: {x: 1, y: 1}
+  foodPerSec: 0
+  woodPerSec: 0
+  stonePerSec: 0
+  foodPerHarvest: 0
+  woodPerHarvest: 0
+  stonePerHarvest: 0
+  harvestDuration: 1
+  populationCapacity: 0
+  requiredWorkers: 0
+  jobType: 0
+  isDropoff: 0

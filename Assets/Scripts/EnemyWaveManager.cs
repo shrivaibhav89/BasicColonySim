@@ -12,6 +12,9 @@ public class EnemyWaveRuntimeState
 
 public class EnemyWaveManager : MonoBehaviour
 {
+    public static event System.Action<bool> OnWaveStateChanged;
+    public static bool IsWaveInProgress { get; private set; }
+
     [Header("UI Reference")]
     public SurvivalTimerUI survivalTimerUI;
     public Text waveCountdownText;
@@ -22,7 +25,21 @@ public class EnemyWaveManager : MonoBehaviour
     public float spawnRadius = 30f;
     public Vector3 spawnDirection = Vector3.forward;
     public float spawnSpread = 4f;
+    [Range(1, 4)] public int spawnLanes = 3;
+    [Range(0f, 180f)] public float laneArc = 110f;
+    public float minSpawnInterval = 0.25f;
+    public float maxSpawnInterval = 0.8f;
+    public float tacticalOffsetRadius = 5f;
     public int enemiesPerWave = 5;
+    [Header("Enemy Ranged Throw")]
+    public bool enableEnemyRangedThrow = true;
+    [Range(5f, 6f)] public float enemyThrowRange = 5.5f;
+    public float enemyThrowCooldown = 2.2f;
+    public int enemyThrowDamage = 8;
+    public float enemyThrowProjectileSpeed = 8f;
+    public float enemyThrowArcHeight = 2.4f;
+    public GameObject vikingAxeProjectilePrefab;
+    public GameObject vikingSpearProjectilePrefab;
     public float timeBetweenWaves = 120f; // 2 minutes
     public int startWaveOnDay = 3;
     public Transform townHallTarget;
@@ -63,6 +80,8 @@ public class EnemyWaveManager : MonoBehaviour
         currentDay = Mathf.Max(0, state.currentDay);
         waveStarted = state.waveStarted;
         waveInProgress = false;
+        IsWaveInProgress = false;
+        OnWaveStateChanged?.Invoke(false);
         UpdateWaveCountdownUI();
     }
 
@@ -110,6 +129,9 @@ public class EnemyWaveManager : MonoBehaviour
     IEnumerator SpawnEnemyWave()
     {
         waveInProgress = true;
+        IsWaveInProgress = true;
+        OnWaveStateChanged?.Invoke(true);
+        ForceArmyUnitsToGarrison();
         SetTownCenterTurretsActive(true);
         if (waveFeedback != null)
         {
@@ -141,9 +163,11 @@ public class EnemyWaveManager : MonoBehaviour
         }
 
         List<EnemyHealth> spawnedEnemies = new List<EnemyHealth>();
+        List<Vector3> laneDirections = BuildLaneDirections();
         for (int i = 0; i < enemiesPerWave; i++)
         {
-            Vector3 spawnPos = GetRandomSpawnPosition();
+            Vector3 laneDir = laneDirections[i % laneDirections.Count];
+            Vector3 spawnPos = GetRandomSpawnPosition(laneDir);
             GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
             if (SoundManager.Instance != null)
             {
@@ -162,8 +186,16 @@ public class EnemyWaveManager : MonoBehaviour
             if (ai != null && townHallTarget != null)
             {
                 ai.SetTarget(townHallTarget);
+                ai.SetTacticalOffset(GetRandomTacticalOffset());
+                ai.enableRangedAttack = enableEnemyRangedThrow;
+                ai.rangedAttackRange = enemyThrowRange;
+                ai.rangedAttackCooldown = enemyThrowCooldown;
+                ai.rangedAttackDamage = enemyThrowDamage;
+                ai.projectileSpeed = enemyThrowProjectileSpeed;
+                ai.projectileArcHeight = enemyThrowArcHeight;
+                ai.ConfigureRangedWeaponPrefabs(vikingAxeProjectilePrefab, vikingSpearProjectilePrefab);
             }
-            yield return new WaitForSeconds(0.5f); // Stagger spawns
+            yield return new WaitForSeconds(Random.Range(minSpawnInterval, maxSpawnInterval));
         }
 
         // Wait for survival timer to finish
@@ -186,6 +218,8 @@ public class EnemyWaveManager : MonoBehaviour
             survivalTimerUI.StopTimer();
 
         waveInProgress = false;
+        IsWaveInProgress = false;
+        OnWaveStateChanged?.Invoke(false);
         SetTownCenterTurretsActive(false);
         if (waveFeedback != null)
         {
@@ -225,9 +259,9 @@ public class EnemyWaveManager : MonoBehaviour
         }
     }
 
-    Vector3 GetRandomSpawnPosition()
+    Vector3 GetRandomSpawnPosition(Vector3 laneDirection)
     {
-        Vector3 direction = spawnDirection;
+        Vector3 direction = laneDirection;
         direction.y = 0f;
         if (direction.sqrMagnitude <= 0.001f)
         {
@@ -241,6 +275,42 @@ public class EnemyWaveManager : MonoBehaviour
         if (townHallTarget != null)
             pos += townHallTarget.position;
         return pos;
+    }
+
+    private List<Vector3> BuildLaneDirections()
+    {
+        List<Vector3> lanes = new List<Vector3>();
+        int laneCount = Mathf.Max(1, spawnLanes);
+        Vector3 baseDirection = spawnDirection;
+        baseDirection.y = 0f;
+        if (baseDirection.sqrMagnitude < 0.001f)
+        {
+            baseDirection = Vector3.forward;
+        }
+
+        baseDirection.Normalize();
+        if (laneCount == 1 || laneArc <= 0.01f)
+        {
+            lanes.Add(baseDirection);
+            return lanes;
+        }
+
+        float halfArc = laneArc * 0.5f;
+        for (int i = 0; i < laneCount; i++)
+        {
+            float t = laneCount == 1 ? 0.5f : (float)i / (laneCount - 1);
+            float angle = Mathf.Lerp(-halfArc, halfArc, t);
+            Vector3 lane = Quaternion.AngleAxis(angle, Vector3.up) * baseDirection;
+            lanes.Add(lane.normalized);
+        }
+
+        return lanes;
+    }
+
+    private Vector3 GetRandomTacticalOffset()
+    {
+        Vector2 circle = Random.insideUnitCircle * tacticalOffsetRadius;
+        return new Vector3(circle.x, 0f, circle.y);
     }
 
     private void UpdateWaveCountdownUI()
@@ -301,5 +371,17 @@ public class EnemyWaveManager : MonoBehaviour
         }
 
         return ((daysRemainingIncludingToday - 1) * dayNightManager.dayDuration) + secondsRemainingToday;
+    }
+
+    private void ForceArmyUnitsToGarrison()
+    {
+        ArmyUnit[] units = FindObjectsOfType<ArmyUnit>(true);
+        for (int i = 0; i < units.Length; i++)
+        {
+            if (units[i] != null && units[i].gameObject.activeInHierarchy)
+            {
+                units[i].BeginWaveGarrison();
+            }
+        }
     }
 }

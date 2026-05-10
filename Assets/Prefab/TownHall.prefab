@@ -224,6 +224,7 @@ GameObject:
   - component: {fileID: -5140193308728955402}
   - component: {fileID: 475040267957032363}
   - component: {fileID: 6296923445301309017}
+  - component: {fileID: 5052506282486395578}
   m_Layer: 6
   m_Name: TownHall
   m_TagString: TownHall
@@ -367,7 +368,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48b2a923d4d8e0f479b5dae65c1a7c8a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 100
+  maxHealth: 300
   currentHealth: 0
 --- !u!114 &6296923445301309017
 MonoBehaviour:
@@ -392,6 +393,33 @@ MonoBehaviour:
   projectileDamage: 10
   projectileArcHeight: 4
   projectileHitRadius: 1.25
+--- !u!114 &5052506282486395578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5170142242643097061}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1af89083137d42a4b90a96f34250f6dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  foodCost: 5
+  woodCost: 5
+  stoneCost: 0
+  trainingDuration: 5
+  queuedUnits: 0
+  armyUnitPrefab: {fileID: 6974088160873578331, guid: 7d0c59200b6717944bf40a2541fab3c6, type: 3}
+  spawnPoint: {fileID: 0}
+  spawnRadius: 1.8
+  spearPrefab: {fileID: 7478660572134806275, guid: f1395686f4ceee24eac6819ac1c44b2a, type: 3}
+  armyAttackRange: 5.5
+  armyAttackCooldown: 1.8
+  armyAttackDamage: 10
+  armyProjectileSpeed: 8
+  armyProjectileArcHeight: 2.1
+  armyProjectileScale: 0.3
 --- !u!1 &6628022279891444031
 GameObject:
   m_ObjectHideFlags: 0

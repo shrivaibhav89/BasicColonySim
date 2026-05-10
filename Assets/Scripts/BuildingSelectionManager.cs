@@ -3,6 +3,8 @@ using UnityEngine.EventSystems;
 
 public class BuildingSelectionManager : MonoBehaviour
 {
+    public static Building CurrentSelectedBuilding { get; private set; }
+
     [Header("References")]
     public Camera mainCamera;
     public BuildingInfoUI infoUI;
@@ -90,6 +92,7 @@ public class BuildingSelectionManager : MonoBehaviour
         {
             currentSelection = building;
             currentHighlighter = null;
+            CurrentSelectedBuilding = currentSelection;
             return;
         }
 
@@ -100,6 +103,7 @@ public class BuildingSelectionManager : MonoBehaviour
 
         ClearSelection();
         currentSelection = building;
+        CurrentSelectedBuilding = currentSelection;
         if (currentSelection == null)
         {
             return;
@@ -124,5 +128,6 @@ public class BuildingSelectionManager : MonoBehaviour
 
         currentSelection = null;
         currentHighlighter = null;
+        CurrentSelectedBuilding = null;
     }
 }

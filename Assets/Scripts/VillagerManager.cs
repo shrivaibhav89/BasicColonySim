@@ -308,6 +308,53 @@ public class VillagerManager : MonoBehaviour
         return targetBuilding != null ? targetBuilding.GetGridOriginOrFallback(gridSystem) : Vector2Int.zero;
     }
 
+    public Vector2Int GetBestTargetTileForWorldPosition(Building targetBuilding, Vector3 worldPosition)
+    {
+        if (gridSystem == null)
+        {
+            return targetBuilding != null ? targetBuilding.GetGridOriginOrFallback(gridSystem) : Vector2Int.zero;
+        }
+
+        Vector2Int desired = gridSystem.WorldToGrid(worldPosition);
+        if (gridSystem.IsWalkable(desired))
+        {
+            return desired;
+        }
+
+        Vector2Int fallback = targetBuilding != null ? targetBuilding.GetGridOriginOrFallback(gridSystem) : desired;
+        Vector2Int best = fallback;
+        float bestDistance = float.MaxValue;
+        bool found = false;
+
+        const int searchRadius = 4;
+        for (int x = -searchRadius; x <= searchRadius; x++)
+        {
+            for (int y = -searchRadius; y <= searchRadius; y++)
+            {
+                Vector2Int candidate = new Vector2Int(desired.x + x, desired.y + y);
+                if (!gridSystem.IsWalkable(candidate))
+                {
+                    continue;
+                }
+
+                float dist = Vector2Int.Distance(desired, candidate);
+                if (dist < bestDistance)
+                {
+                    bestDistance = dist;
+                    best = candidate;
+                    found = true;
+                }
+            }
+        }
+
+        if (found)
+        {
+            return best;
+        }
+
+        return fallback;
+    }
+
     public bool TryGetNearestRoadTile(Building building, out Vector2Int roadTile)
     {
         if (building == null || gridSystem == null)
@@ -399,6 +446,46 @@ public class VillagerManager : MonoBehaviour
             Vector3 spawnPos = GetInitialSpawnPosition(i);
             spawned.SetIdleAt(spawnPos);
             activeVillagers.Add(spawned);
+        }
+    }
+
+    public bool SpawnImmigrant(Building townHall)
+    {
+        Villager spawned = GetVillagerFromPool();
+        if (spawned == null)
+        {
+            return false;
+        }
+
+        spawned.gameObject.SetActive(true);
+        spawned.Initialize(this, gridSystem);
+
+        Vector3 spawnPos = townHall != null
+            ? townHall.transform.position + new Vector3(Random.Range(-1.5f, 1.5f), 0f, Random.Range(-1.5f, 1.5f))
+            : GetInitialSpawnPosition(activeVillagers.Count);
+
+        spawned.SetIdleAt(spawnPos);
+
+        if (!activeVillagers.Contains(spawned))
+        {
+            activeVillagers.Add(spawned);
+        }
+
+        return true;
+    }
+
+    public void NotifyVillagerDied(Villager villager)
+    {
+        if (villager == null)
+        {
+            return;
+        }
+
+        activeVillagers.Remove(villager);
+        villager.gameObject.SetActive(false);
+        if (!pool.Contains(villager))
+        {
+            pool.Enqueue(villager);
         }
     }
 }

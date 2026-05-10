@@ -9,6 +9,14 @@ public class PopulationManager : MonoBehaviour
     [Header("Population")]
     public int currentPopulation = 5;
     public int maxPopulation = 5;
+
+    [Header("Population Refill")]
+    public bool enablePopulationRefill = true;
+    public float refillInterval = 20f;
+    public int foodCostPerVillager = 10;
+    public int maxSpawnPerTick = 1;
+    public bool requireTownHallForRefill = true;
+    private float refillTimer;
     
     public event Action OnPopulationChanged;
     public event Action<Building> OnBuildingRegistered;
@@ -27,6 +35,34 @@ public class PopulationManager : MonoBehaviour
         else Destroy(gameObject);
 
         EnsureDefaultPriorities();
+    }
+
+    void Update()
+    {
+        if (!enablePopulationRefill)
+        {
+            return;
+        }
+
+        if (GameManager.Instance != null && GameManager.Instance.IsDefeated())
+        {
+            return;
+        }
+
+        if (currentPopulation >= maxPopulation)
+        {
+            refillTimer = 0f;
+            return;
+        }
+
+        refillTimer += Time.deltaTime;
+        if (refillTimer < Mathf.Max(0.1f, refillInterval))
+        {
+            return;
+        }
+
+        refillTimer = 0f;
+        TryRefillPopulation();
     }
     
     public void RegisterBuilding(Building building)
@@ -50,8 +86,6 @@ public class PopulationManager : MonoBehaviour
         if (building.GetPopulationCapacity() > 0)
         {
             maxPopulation += building.GetPopulationCapacity();
-            // Instantly add citizens
-            currentPopulation = Mathf.Min(currentPopulation + building.GetPopulationCapacity(), maxPopulation);
             OnPopulationChanged?.Invoke();
             
         }
@@ -86,7 +120,27 @@ public class PopulationManager : MonoBehaviour
     {
         maxPopulation = Mathf.Max(0, max);
         currentPopulation = Mathf.Clamp(current, 0, maxPopulation);
+        refillTimer = 0f;
         OnPopulationChanged?.Invoke();
+    }
+
+    public void NotifyVillagerDied()
+    {
+        if (currentPopulation <= 0)
+        {
+            currentPopulation = 0;
+            return;
+        }
+
+        currentPopulation = Mathf.Max(0, currentPopulation - 1);
+        OnPopulationChanged?.Invoke();
+    }
+
+    public void NotifyVillagerSpawned()
+    {
+        currentPopulation = Mathf.Clamp(currentPopulation + 1, 0, maxPopulation);
+        OnPopulationChanged?.Invoke();
+        AssignWorkers();
     }
 
     public List<JobPriority> GetJobPrioritiesSnapshot()
@@ -346,6 +400,63 @@ public class PopulationManager : MonoBehaviour
                 jobPriorities.Add(new JobPriority { jobType = type, priority = 1 });
             }
         }
+    }
+
+    private void TryRefillPopulation()
+    {
+        if (ResourceManager.Instance == null || VillagerManager.Instance == null)
+        {
+            return;
+        }
+
+        Building townHall = FindTownHall();
+        if (requireTownHallForRefill && townHall == null)
+        {
+            return;
+        }
+
+        int spawnCount = Mathf.Max(1, maxSpawnPerTick);
+        for (int i = 0; i < spawnCount; i++)
+        {
+            if (currentPopulation >= maxPopulation)
+            {
+                break;
+            }
+
+            if (!ResourceManager.Instance.CanAfford(foodCostPerVillager, 0, 0))
+            {
+                break;
+            }
+
+            ResourceManager.Instance.SpendResources(foodCostPerVillager, 0, 0);
+            bool spawned = VillagerManager.Instance.SpawnImmigrant(townHall);
+            if (!spawned)
+            {
+                ResourceManager.Instance.AddResources(foodCostPerVillager, 0, 0);
+                break;
+            }
+
+            NotifyVillagerSpawned();
+        }
+    }
+
+    private Building FindTownHall()
+    {
+        for (int i = 0; i < allBuildings.Count; i++)
+        {
+            Building b = allBuildings[i];
+            if (b == null)
+            {
+                continue;
+            }
+
+            if (b.CompareTag("TownHall") || b.GetComponent<TownHallTag>() != null)
+            {
+                return b;
+            }
+        }
+
+        return null;
     }
 }
 
